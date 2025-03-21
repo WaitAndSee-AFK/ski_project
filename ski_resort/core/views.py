@@ -1,32 +1,29 @@
-# core/views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, View
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from .models import Equipment, Service, Booking
 from django.utils import timezone
-
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .forms import ReviewForm
-from .models import Review
-
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Booking
+from django.contrib.auth.decorators import login_required
+from django import forms
+from django.contrib.auth.models import User
+
+from .models import Equipment, Service, Booking, Review, UserProfile  # Добавил UserProfile
+from .forms import ReviewForm
 
 
 @csrf_exempt
 def cancel_booking(request, booking_id):
     if request.method == 'POST':
         try:
-            booking = Booking.objects.get(id=booking_id, user=request.user)
+            booking = get_object_or_404(Booking, id=booking_id, user=request.user)
             booking.delete()
             return JsonResponse({'success': True})
-        except Booking.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Бронирование не найдено'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Недопустимый метод запроса'})
 
 
@@ -43,29 +40,30 @@ def create_review(request):
             review = form.save(commit=False)
             review.user = request.user
             review.save()
+            messages.success(request, 'Ваш отзыв успешно отправлен на модерацию.')
             return redirect('review_list')
     else:
         form = ReviewForm()
     return render(request, 'review_form.html', {'form': form})
 
 
-# Для администратора
+@login_required
 def review_moderation(request):
     if request.user.is_staff:
         reviews = Review.objects.filter(approved=False)
         return render(request, 'review_moderation.html', {'reviews': reviews})
+    messages.warning(request, 'У вас нет прав для доступа к этой странице.')
     return redirect('review_list')
 
 
 class HomeView(View):
     def get(self, request):
-        return render(request, 'home.html', {
-            'complex_info': {
-                'name': 'Горнолыжный курорт Алтай',
-                'description': 'Лучший курорт в регионе с современным оборудованием и трассами',
-                'location': 'Горы Алтая'
-            }
-        })
+        complex_info = {
+            'name': 'Горнолыжный курорт Алтай',
+            'description': 'Лучший курорт в регионе с современным оборудованием и трассами',
+            'location': 'Горы Алтая'
+        }
+        return render(request, 'home.html', {'complex_info': complex_info})
 
 
 class ServicesView(ListView):
@@ -80,21 +78,37 @@ class PricingView(ListView):
     context_object_name = 'equipment'
 
 
+# Добавил кастомную форму для регистрации
+class CustomUserCreationForm(UserCreationForm):
+    phone_number = forms.CharField(max_length=15, required=True, label='Номер телефона')
+
+    class Meta:
+        model = User
+        fields = ('username', 'phone_number', 'password1', 'password2')
+
+
 class RegisterView(View):
     def get(self, request):
-        form = UserCreationForm()
+        form = CustomUserCreationForm()  # Используем кастомную форму
         return render(request, 'register.html', {'form': form})
 
     def post(self, request):
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            phone_number = form.cleaned_data.get('phone_number')
+            UserProfile.objects.create(user=user, phone_number=phone_number)
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password1')
             user = authenticate(username=username, password=password)
-            login(request, user)
-            messages.success(request, 'Регистрация прошла успешно!')
-            return redirect('profile')
+            if user:
+                login(request, user)
+                messages.success(request, 'Регистрация прошла успешно!')
+                return redirect('profile')
+            else:
+                messages.error(request, 'Ошибка аутентификации.')
+        else:
+            messages.error(request, 'Исправьте ошибки в форме.')
         return render(request, 'register.html', {'form': form})
 
 
@@ -114,22 +128,47 @@ class BookServiceView(LoginRequiredMixin, View):
     def post(self, request, service_id=None, equipment_id=None):
         try:
             if service_id:
-                item = Service.objects.get(id=service_id)
+                item = get_object_or_404(Service, id=service_id)
                 booking_type = 'service'
             elif equipment_id:
-                item = Equipment.objects.get(id=equipment_id)
+                item = get_object_or_404(Equipment, id=equipment_id)
                 booking_type = 'equipment'
             else:
                 raise ValueError("Не указан объект бронирования")
 
-            booking = Booking.objects.create(
+            Booking.objects.create(
                 user=request.user,
                 service=item if booking_type == 'service' else None,
                 equipment=item if booking_type == 'equipment' else None,
                 start_date=timezone.now(),
-                end_date=timezone.now() + timezone.timedelta(days=1)
-            )
+                end_date=timezone.now() + timezone.timedelta(days=1))
             messages.success(request, 'Бронирование успешно создано!')
         except Exception as e:
             messages.error(request, f'Ошибка бронирования: {str(e)}')
         return redirect('profile')
+
+
+# Форма для отзывов (осталась без изменений)
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['title', 'content', 'rating']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Введите заголовок отзыва',
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Напишите ваш отзыв',
+            }),
+            'rating': forms.Select(attrs={
+                'class': 'form-control',
+                'placeholder': 'Выберите оценку',
+            }),
+        }
+        labels = {
+            'title': 'Заголовок отзыва',
+            'content': 'Текст отзыва',
+            'rating': 'Оценка',
+        }

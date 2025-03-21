@@ -1,5 +1,14 @@
 from django import forms
 from .models import Review
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
+class CustomUserCreationForm(UserCreationForm):
+    phone_number = forms.CharField(max_length=15, required=True, label='Номер телефона')
+
+    class Meta:
+        model = User
+        fields = ('username', 'phone_number', 'password1', 'password2')
 
 class ReviewForm(forms.ModelForm):
     class Meta:

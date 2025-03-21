@@ -78,6 +78,104 @@
         transform: translateY(-2px); /* Легкий подъем */
     }
 
+    /* Стили для модального окна */
+    .modal {
+        display: none; /* Скрыто по умолчанию */
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5); /* Полупрозрачный фон */
+    }
+
+    .modal-content {
+        background-color: #fff;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+        color: #1e90ff;
+        font-size: 1.8em;
+        margin: 0;
+    }
+
+    .modal-header .close {
+        font-size: 1.5em;
+        cursor: pointer;
+        color: #555;
+    }
+
+    .modal-body {
+        margin-bottom: 20px;
+    }
+
+    .modal-body label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 1.1em;
+        color: #555;
+    }
+
+    .modal-body input[type="date"],
+    .modal-body input[type="time"] {
+        width: calc(100% - 20px); /* Учитываем padding */
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1em;
+        margin-bottom: 20px;
+        box-sizing: border-box; /* Учитываем padding и border в ширине */
+    }
+
+    .modal-footer {
+        text-align: right;
+    }
+
+    .modal-footer .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+        transition: background-color 0.3s ease;
+    }
+
+    .modal-footer .btn-confirm {
+        background-color: #1e90ff;
+        color: white;
+    }
+
+    .modal-footer .btn-confirm:hover {
+        background-color: #0077cc;
+    }
+
+    .modal-footer .btn-cancel {
+        background-color: #f0f0f0;
+        color: #555;
+        margin-right: 10px;
+    }
+
+    .modal-footer .btn-cancel:hover {
+        background-color: #ddd;
+    }
+
     /* Адаптивные стили */
     @media (max-width: 768px) {
         h1 {
@@ -143,7 +241,7 @@
                 <p>{{ service.description }}</p>
                 {% if user.is_authenticated %}
                     <!-- Кнопка для открытия модального окна -->
-                    <button type="button" class="btn-booking" data-toggle="modal" data-target="#bookingModal{{ service.id }}">
+                    <button type="button" class="btn-booking" onclick="openModal('{{ service.id }}')">
                         Забронировать
                     </button>
                 {% endif %}
@@ -151,4 +249,54 @@
         {% endfor %}
     </ul>
 </div>
+
+<!-- Модальное окно для бронирования -->
+<div id="bookingModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Бронирование услуги</h2>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="bookingForm" method="post" action="{% url 'profile' %}">
+                {% csrf_token %}
+                <input type="hidden" id="serviceId" name="service_id">
+                <label for="bookingDate">Дата бронирования:</label>
+                <input type="date" id="bookingDate" name="booking_date" required>
+                <label for="bookingTime">Время бронирования:</label>
+                <input type="time" id="bookingTime" name="booking_time" required>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Отмена</button>
+            <button type="button" class="btn btn-confirm" onclick="submitBooking()">Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция для открытия модального окна
+    function openModal(serviceId) {
+        document.getElementById('serviceId').value = serviceId;
+        document.getElementById('bookingModal').style.display = 'block';
+    }
+
+    // Функция для закрытия модального окна
+    function closeModal() {
+        document.getElementById('bookingModal').style.display = 'none';
+    }
+
+    // Функция для отправки формы бронирования
+    function submitBooking() {
+        document.getElementById('bookingForm').submit();
+    }
+
+    // Закрытие модального окна при клике вне его области
+    window.onclick = function(event) {
+        const modal = document.getElementById('bookingModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+</script>
 {% endblock %}

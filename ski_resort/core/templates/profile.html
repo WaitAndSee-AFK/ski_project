@@ -209,7 +209,13 @@
 {% endif %}
 
 <div class="profile-container">
-    <h1>Ваш профиль, {{ user.first_name }} {{ user.last_name }}!</h1>
+    <!-- Проверка наличия имени и фамилии -->
+    {% if user.first_name and user.last_name %}
+        <h1>Ваш профиль, {{ user.first_name }} {{ user.last_name }}!</h1>
+    {% else %}
+        <h1>Ваш профиль, Профиль ({{ user.phone_number }})</h1>
+    {% endif %}
+
     <h2>Ваши бронирования</h2>
     {% if bookings %}
         <ul class="bookings-list">

@@ -3,8 +3,18 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 
-from django.db import models
-from django.contrib.auth.models import User
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+
+class Role(models.Model):
+    # Код роли (уникальный идентификатор)
+    role_code = models.CharField(max_length=10, unique=True, verbose_name="Код роли")
+    # Наименование роли
+    role_name = models.CharField(max_length=50, verbose_name="Наименование роли")
+
+    def __str__(self):
+        return f"{self.role_name} ({self.role_code})"
 
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
