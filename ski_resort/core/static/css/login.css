@@ -1,0 +1,61 @@
+/* Основные стили для секции формы */
+.form-section {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для заголовка */
+.form-section h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Стили для формы */
+.login-form {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Стили для группы формы */
+.form-group {
+    margin-bottom: 15px;
+}
+
+/* Стили для меток */
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+/* Стили для полей ввода */
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+/* Стили для кнопки */
+.login-form button {
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Эффект при наведении на кнопку */
+.login-form button:hover {
+    background-color: #0056b3;
+}

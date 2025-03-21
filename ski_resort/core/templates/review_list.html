@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Общие стили для страницы */
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: white; /* Белый фон страницы */
+        color: #343a40;
+        line-height: 1.6;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        margin-top: 80px; /* Отступ сверху для навигационной панели */
+    }
+
+    h2 {
+        text-align: center;
+        color: #1e90ff; /* Синий цвет заголовка */
+        font-size: 2.5em;
+        margin-bottom: 20px;
+        font-weight: 700;
+    }
+
+    /* Стили для кнопки */
+    .btn.btn-primary {
+        background-color: #1e90ff; /* Синий цвет кнопки */
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        display: inline-block; /* Изменено на inline-block */
+        margin: 0 0 20px 0; /* Кнопка слева */
+        text-decoration: none;
+        transition: all 0.3s ease;
+        text-align: center;
+        max-width: 200px;
+    }
+
+    .btn.btn-primary:hover {
+        background-color: #0077cc; /* Темно-синий цвет при наведении */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px); /* Легкий подъем */
+    }
+
+    /* Стили для карточек отзывов */
+    .review-card {
+        width: calc(33.33% - 20px); /* Ширина карточки для трех в ряд */
+        margin: 10px; /* Отступ между карточками */
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: inline-block; /* Карточки в ряд */
+        vertical-align: top; /* Выравнивание по верхнему краю */
+    }
+
+    .review-card:hover {
+        transform: translateY(-5px); /* Подъем карточки при наведении */
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .review-card h3 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        color: #1e90ff; /* Синий цвет заголовка */
+    }
+
+    .review-card p {
+        font-size: 1em;
+        margin-bottom: 10px;
+        color: #2c3e50; /* Темный цвет текста */
+    }
+
+    .review-card small {
+        font-size: 0.9em;
+        color: #666; /* Серый цвет для даты */
+    }
+
+    /* Стили для сообщения о пустых отзывах */
+    .empty-message {
+        text-align: center;
+        color: #666;
+        margin: 20px 0;
+    }
+
+    /* Адаптивные стили */
+    @media (max-width: 768px) {
+        h2 {
+            font-size: 2em;
+        }
+
+        .review-card {
+            width: calc(50% - 20px); /* Две карточки в ряд на планшетах */
+        }
+
+        .btn.btn-primary {
+            max-width: 150px; /* Уменьшаем ширину кнопки на мобильных */
+        }
+    }
+
+    @media (max-width: 480px) {
+        h2 {
+            font-size: 1.8em;
+        }
+
+        .review-card {
+            width: 100%; /* Одна карточка в ряд на мобильных */
+        }
+
+        .btn.btn-primary {
+            max-width: 120px; /* Еще меньше ширина кнопки */
+        }
+    }
+</style>
+
+<div class="container">
+    {% if user.is_authenticated %}
+        <h2>Отзывы о курорте</h2>
+        <a href="{% url 'create_review' %}" class="btn btn-primary">Оставить отзыв</a>
+
+        <div class="reviews-container">
+            {% for review in reviews %}
+                <div class="review-card">
+                    <h3>{{ review.title }}</h3>
+                    <p>Автор: {{ review.user.first_name }} {{ review.user.last_name }}</p>
+                    <p>Оценка: {{ review.rating }}/5</p>
+                    <p>{{ review.content }}</p>
+                    <small>Опубликовано: {{ review.created_at|date:"d.m.Y" }}</small>
+                </div>
+            {% empty %}
+                <p class="empty-message">Пока нет отзывов</p>
+            {% endfor %}
+        </div>
+    {% else %}
+        <h2>Пожалуйста, авторизуйтесь</h2>
+        <p class="empty-message">Для просмотра отзывов и оставления своего отзыва необходимо войти в систему.</p>
+        <a href="{% url 'login' %}" class="btn btn-primary">Войти</a>
+    {% endif %}
+</div>
+{% endblock %}

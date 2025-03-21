@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    /* Общие стили для страницы */
+    body {
+        font-family: 'Arial', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f0f0f0;
+        background-image: linear-gradient(to bottom, #f7f7f7, #e7e7e7);
+    }
+
+    .form-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px; /* Добавлены отступы сверху и снизу */
+    }
+
+    .form-container {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+    }
+
+    .form-title {
+        margin-bottom: 20px;
+        color: #007bff;
+        font-size: 2em;
+        font-weight: bold;
+    }
+
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        font-size: 1em;
+        color: #555;
+        text-align: left;
+    }
+
+    .form-group input {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .form-group input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+        outline: none;
+    }
+
+    .submit-btn {
+        background-color: #007bff;
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .submit-btn:hover {
+        background-color: #0056b3;
+    }
+
+    .register-link {
+        margin-top: 20px;
+        font-size: 0.9em;
+        color: #555;
+    }
+
+    .register-link a {
+        color: #007bff;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .register-link a:hover {
+        color: #0056b3;
+    }
+
+    /* Анимация для кнопки */
+    .submit-btn {
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .submit-btn:hover {
+        transform: scale(1.05);
+    }
+
+    /* Адаптивные стили */
+    @media (max-width: 480px) {
+        .form-container {
+            padding: 20px;
+        }
+
+        .form-title {
+            font-size: 1.8em;
+        }
+
+        .form-group input {
+            font-size: 0.9em;
+        }
+
+        .submit-btn {
+            font-size: 0.9em;
+        }
+
+        .register-link {
+            font-size: 0.8em;
+        }
+    }
+</style>
+
+<section class="form-section">
+    <div class="form-container">
+        <h2 class="form-title">Вход</h2>
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Имя пользователя:</label>
+                {{ form.username }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">Пароль:</label>
+                {{ form.password }}
+            </div>
+            <button type="submit" class="submit-btn">Войти</button>
+        </form>
+        <!-- Добавлена ссылка на регистрацию -->
+        <p class="register-link">Хотите зарегистрироваться? <a href="{% url 'register' %}">Зарегистрироваться</a></p>
+    </div>
+</section>
+
+{% endblock %}

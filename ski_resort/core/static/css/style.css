@@ -1,0 +1,237 @@
+/* Общие стили */
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #22577a;
+    color: #333;
+    font-size: 18px; /* Увеличен размер текста на 2 пункта (было 16px) */
+}
+
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Навигационная панель */
+.navbar {
+    background-color: #22577a; /* Темный синий цвет */
+    color: #fff; /* Белый цвет текста */
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    justify-content: flex-start; /* Размещение навигационной панели рядом с логотипом */
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000; /* Убедимся, что панель поверх других элементов */
+    height: 60px; /* Фиксированная высота навигационной панели */
+}
+
+.navbar .logo-link {
+    margin-right: 20px; /* Отступ между логотипом и ссылками */
+}
+
+.navbar .logo {
+    width: 80px; /* Размер логотипа */
+    height: auto;
+}
+
+/* Ссылки навигационной панели */
+.nav-links a {
+    color: #fff; /* Белый цвет текста */
+    text-decoration: none;
+    padding: 10px 15px;
+    margin-right: 10px; /* Отступ между ссылками */
+    font-weight: 500;
+    font-size: 20px; /* Увеличен размер текста (было 18px) */
+    transition: all 0.3s ease; /* Плавная анимация для всех свойств */
+    position: relative; /* Для псевдоэлементов */
+}
+
+/* Эффект при наведении на ссылки */
+.nav-links a:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Полупрозрачный белый фон */
+    border-radius: 5px;
+    transform: translateY(-2px); /* Легкий подъем */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Тень при наведении */
+}
+
+/* Подчеркивание при наведении */
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #FFD700; /* Золотой цвет подчеркивания */
+    transform: scaleX(0); /* Начальное состояние (невидимо) */
+    transform-origin: bottom right;
+    transition: transform 0.3s ease; /* Плавная анимация */
+}
+
+.nav-links a:hover::after {
+    transform: scaleX(1); /* Подчеркивание появляется */
+    transform-origin: bottom left;
+}
+
+/* Стиль для кнопки "Администрирование" */
+.nav-links a.admin-link {
+    color: #ff4d4d; /* Красный цвет текста */
+    font-weight: 700; /* Жирный шрифт */
+}
+
+.nav-links a.admin-link:hover {
+    background-color: rgba(255, 77, 77, 0.1); /* Полупрозрачный красный фон */
+}
+
+/* Основной контент */
+.main-content {
+    margin-top: 60px; /* Отступ для навигационной панели */
+    padding: 20px;
+    flex: 1;
+}
+
+/* Верхний прямоугольник (например, блок с заголовком) */
+.hero {
+    background-color: #ffffff;
+    padding: 40px 20px;
+    margin-top: 60px; /* Отступ для навигационной панели */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.hero h1 {
+    font-size: 2.5em;
+    color: #1e90ff;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.hero p {
+    font-size: 1.2em;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+/* Сообщения */
+.messages {
+    margin-bottom: 20px;
+}
+
+/* Галерея изображений */
+.image-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px; /* Отступ между изображениями */
+}
+
+.image-gallery img {
+    width: 200px;
+    height: 150px;
+    border-radius: 10px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Подвал */
+footer {
+    background-color: #22577a; /* Темный синий цвет фона */
+    color: #fff; /* Белый цвет текста по умолчанию */
+    padding: 15px;
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    transition: opacity 0.5s;
+    z-index: 1000; /* Убедимся, что подвал поверх других элементов */
+    font-size: 16px; /* Увеличен размер текста (было 14px) */
+}
+
+footer p {
+    margin: 0; /* Убираем отступы у текста */
+    color: #fff; /* Белый цвет текста */
+}
+
+.hidden {
+    opacity: 0;
+}
+
+.visible {
+    opacity: 1;
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 10px;
+        height: 50px; /* Уменьшаем высоту навигационной панели на мобильных */
+    }
+
+    .navbar .logo {
+        width: 60px; /* Уменьшаем логотип на мобильных */
+    }
+
+    .nav-links a {
+        padding: 8px 12px;
+        font-size: 18px; /* Увеличен размер текста (было 16px) */
+    }
+
+    .main-content {
+        margin-top: 50px; /* Уменьшаем отступ для навигационной панели */
+    }
+
+    .hero {
+        margin-top: 50px; /* Уменьшаем отступ для навигационной панели */
+    }
+
+    footer {
+        font-size: 14px; /* Уменьшаем размер текста на мобильных */
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar .logo {
+        width: 50px; /* Еще меньше логотип на очень маленьких экранах */
+    }
+
+    .nav-links a {
+        padding: 6px 10px;
+        font-size: 16px; /* Увеличен размер текста (было 14px) */
+    }
+
+    .main-content {
+        margin-top: 50px; /* Еще меньше отступ для навигационной панели */
+    }
+
+    .hero {
+        margin-top: 50px; /* Еще меньше отступ для навигационной панели */
+    }
+
+    footer {
+        font-size: 12px; /* Еще меньше размер текста на очень маленьких экранах */
+    }
+}
+
+/* Увеличение шрифта для "Почему нас выбирают" и "Галерея" */
+.why-choose-us h2,
+.gallery h2 {
+    font-size: 2.2em; /* Увеличенный размер шрифта */
+    color: #1e90ff;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.why-choose-us p,
+.gallery p {
+    font-size: 1.2em; /* Увеличенный размер шрифта */
+    color: #2c3e50;
+    line-height: 1.6;
+}

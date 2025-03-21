@@ -1,0 +1,153 @@
+<!-- core/templates/pricing.html -->
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    /* Общие стили для страницы */
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: white; /* Белый фон страницы */
+        color: #343a40;
+        line-height: 1.6;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 1800px; /* Увеличиваем максимальную ширину контейнера */
+        margin: 0 auto;
+        padding: 20px;
+        margin-top: 80px; /* Отступ сверху для навигационной панели */
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Центрируем содержимое контейнера */
+    }
+
+    /* Общие стили для таблицы */
+    .equipment-table {
+        width: 100%; /* Таблица занимает всю ширину контейнера */
+        border-collapse: collapse;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        background-color: white; /* Белый фон таблицы */
+        margin-top: 20px; /* Отступ сверху */
+    }
+
+    /* Стили для заголовков таблицы */
+    .equipment-table thead {
+        background-color: #1e90ff; /* Синий цвет заголовка */
+        color: white;
+    }
+
+    .equipment-table th {
+        padding: 15px;
+        text-align: left;
+        font-size: 1.1em;
+        font-weight: 700;
+    }
+
+    /* Стили для строк таблицы */
+    .equipment-table tbody tr {
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.3s ease;
+    }
+
+    .equipment-table tbody tr:hover {
+        background-color: #f9f9f9; /* Легкий фон при наведении */
+    }
+
+    .equipment-table td {
+        padding: 12px;
+        font-size: 1em;
+        color: #2c3e50;
+    }
+
+    /* Стили для первой колонки (Наименование) */
+    .equipment-table td:first-child {
+        font-weight: 500;
+    }
+
+    /* Стили для последней строки */
+    .equipment-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 768px) {
+        .equipment-table {
+            width: 100%; /* Таблица занимает всю ширину на мобильных */
+            font-size: 0.9em;
+        }
+
+        .equipment-table th,
+        .equipment-table td {
+            padding: 10px;
+        }
+
+        .container {
+            margin-top: 70px; /* Уменьшаем отступ для навигационной панели */
+        }
+    }
+
+    @media (max-width: 480px) {
+        .equipment-table {
+            width: 100%; /* Таблица занимает всю ширину на очень маленьких экранах */
+            font-size: 0.8em;
+        }
+
+        .equipment-table th,
+        .equipment-table td {
+            padding: 8px;
+        }
+
+        .container {
+            margin-top: 60px; /* Еще меньше отступ для навигационной панели */
+        }
+    }
+
+    /* Стили для заголовка страницы */
+    h1 {
+        color: #1e90ff; /* Синий цвет заголовка */
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 2.5em;
+        font-weight: 700;
+    }
+
+    /* Адаптивные стили для заголовка */
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 2em;
+        }
+    }
+
+    @media (max-width: 480px) {
+        h1 {
+            font-size: 1.8em;
+        }
+    }
+</style>
+
+<div class="container">
+    <h1>Цены на прокат снаряжения</h1>
+    <table class="equipment-table">
+        <thead>
+            <tr>
+                <th>Наименование</th>
+                <th>Цена за день (руб.)</th>
+                <th>Описание</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in equipment %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.price_per_day }}</td>
+                    <td>{{ item.description }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

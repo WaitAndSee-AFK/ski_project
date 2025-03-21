@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Горнолыжный курорт</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<header>
+    <nav class="navbar">
+        <a href="{% url 'home' %}" class="logo-link">
+            <img src="{% static 'image/logo1.png' %}" alt="Логотип курорта" class="logo">
+        </a>
+        <div class="nav-links">
+            <a href="{% url 'home' %}">Главная</a>
+            <a href="{% url 'services' %}">Услуги</a>
+            <a href="{% url 'pricing' %}">Цены</a>
+            <a href="{% url 'review_list' %}">Отзывы</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}">Профиль</a>
+                {% if user.is_staff %} <!-- Проверка прав администратора -->
+                    <a href="/admin/" class="admin-link">Администрирование</a> <!-- Добавлен класс admin-link -->
+                {% endif %}
+                <a href="{% url 'logout' %}">Выйти</a>
+            {% else %}
+                <a href="{% url 'login' %}">Войти</a>
+            {% endif %}
+        </div>
+    </nav>
+</header>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<footer id="footer" class="hidden">
+    <p>© 2025 Горнолыжный курорт</p>
+</footer>
+
+<script>
+    window.addEventListener('scroll', function() {
+        const footer = document.getElementById('footer');
+        const scrollPosition = window.scrollY + window.innerHeight;
+        const pageHeight = document.documentElement.scrollHeight;
+
+        if (scrollPosition >= pageHeight - 10) {
+            footer.classList.remove('hidden');
+            footer.classList.add('visible');
+        } else {
+            footer.classList.remove('visible');
+            footer.classList.add('hidden');
+        }
+    });
+</script>
+</body>
+</html>

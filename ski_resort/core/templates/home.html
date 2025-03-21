@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    /* Общие стили */
+    body {
+        font-family: 'Arial', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f8f9fa;
+        color: #343a40;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 2000px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    h1,
+    h2,
+    h3 {
+        color: #007bff;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    p {
+        line-height: 1.6;
+        text-align: center; /* Центрируем текст */
+    }
+
+    /* Стили для изображений */
+    .hero-image,
+    .feature-image,
+    .gallery-image {
+        width: 100%;
+        max-width: 600px; /* Увеличил максимальную ширину изображений */
+        height: 400px; /* Увеличил высоту изображений */
+        object-fit: cover;
+        border-radius: 20px; /* Увеличил скругление углов */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    /* Стили для контейнеров с изображениями */
+    .hero-images,
+    .feature-grid,
+    .image-grid {
+        display: flex;
+        justify-content: center; /* Центрируем элементы */
+        gap: 20px;
+        padding: 10px;
+        flex-wrap: wrap; /* Разрешаем перенос на следующую строку */
+    }
+
+    /* Стили для каждого элемента с изображением */
+    .feature-item {
+        text-align: center;
+        width: 100%;
+        max-width: 500px; /* Увеличил максимальную ширину элемента */
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 20px; /* Увеличил скругление углов */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    /* Стили для секций */
+    .hero,
+    .features,
+    .gallery {
+        padding: 50px 0;
+        text-align: center;
+        background-color: #fff;
+        border-radius: 20px; /* Увеличил скругление углов */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    /* Адаптивные стили */
+    @media (max-width: 768px) {
+        .container {
+            width: 100%;
+            padding: 10px;
+        }
+
+        .feature-grid {
+            flex-direction: column; /* Расположение элементов в столбик на маленьких экранах */
+            align-items: center; /* Центрирование элементов */
+        }
+
+        .feature-item {
+            max-width: 100%; /* Элемент занимает всю ширину на маленьких экранах */
+        }
+
+        .hero-image,
+        .feature-image,
+        .gallery-image {
+            height: 300px; /* Уменьшаем высоту изображений на мобильных устройствах */
+        }
+    }
+
+    @media (max-width: 480px) {
+        .hero-image,
+        .feature-image,
+        .gallery-image {
+            height: 250px; /* Еще меньше высота для очень маленьких экранов */
+        }
+    }
+</style>
+
+<div class="container">
+    <section class="hero">
+        <h1>Добро пожаловать на Горнолыжный курорт!</h1>
+        <p>Откройте для себя идеальное место для зимнего отдыха и активного отдыха на снежных склонах.</p>
+        <div class="hero-images">
+            <img src="{% static 'image/sclone1.jpg' %}" alt="Панорама склонов 1" class="hero-image">
+            <img src="{% static 'image/sclone2.jpg' %}" alt="Панорама склонов 2" class="hero-image">
+            <img src="{% static 'image/sclone3.jpg' %}" alt="Панорама склонов 3" class="hero-image">
+        </div>
+    </section>
+
+    <section class="features">
+        <h2>Почему выбирают нас?</h2>
+        <div class="feature-grid">
+            <div class="feature-item">
+                <img src="{% static 'image/ski2.jpg' %}" alt="Современные подъемники" class="feature-image">
+                <h3>Современные подъемники</h3>
+                <p>Наши подъемники обеспечивают комфортный и быстрый подъем на любые склоны курорта. Мы используем
+                    современное оборудование, которое отвечает всем стандартам безопасности и позволяет наслаждаться
+                    видами без лишних задержек.</p>
+            </div>
+            <div class="feature-item">
+                <img src="{% static 'image/ski3.jpeg' %}" alt="Профессиональные инструкторы" class="feature-image">
+                <h3>Профессиональные инструкторы</h3>
+                <p>Наши опытные инструкторы помогут новичкам освоить азы катания на лыжах или сноуборде, а
+                    профессиональным спортсменам — отточить технику. Индивидуальный подход и многолетний опыт
+                    гарантируют быстрый прогресс.</p>
+            </div>
+            <div class="feature-item">
+                <img src="{% static 'image/device.jpg' %}" alt="Качественное оборудование" class="feature-image">
+                <h3>Качественное оборудование</h3>
+                <p>Мы предлагаем аренду и профессиональное обслуживание лучшего горнолыжного снаряжения от ведущих
+                    мировых брендов. Вы можете быть уверены в качестве и надежности экипировки на протяжении всего
+                    отдыха.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="gallery">
+        <h2>Галерея курорта</h2>
+        <div class="image-grid">
+            <img src="{% static 'image/player1.jpg' %}" alt="Склон 1" class="gallery-image">
+            <img src="{% static 'image/player2.jpg' %}" alt="Склон 2" class="gallery-image">
+            <img src="{% static 'image/player3.jpg' %}" alt="Склон 3" class="gallery-image">
+        </div>
+    </section>
+</div>
+{% endblock %}

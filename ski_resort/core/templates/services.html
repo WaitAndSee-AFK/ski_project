@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    /* Общие стили */
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f8f9fa;
+        color: #343a40;
+        line-height: 1.6;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        margin-top: 80px; /* Отступ для навигационной панели */
+    }
+
+    h1 {
+        color: #1e90ff; /* Синий цвет заголовка */
+        text-align: center;
+        margin-bottom: 40px;
+        font-size: 2.5em;
+        font-weight: 700;
+    }
+
+    /* Стили для списка услуг */
+    ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    li {
+        background-color: #fff;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    li:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    li h3 {
+        color: #1e90ff; /* Синий цвет заголовка услуги */
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    li p {
+        color: #555;
+        font-size: 1.1em;
+        margin-bottom: 20px;
+    }
+
+    /* Стили для кнопки бронирования */
+    .btn-booking {
+        padding: 10px 20px;
+        background-color: #1e90ff; /* Синий цвет кнопки */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .btn-booking:hover {
+        background-color: #0077cc; /* Темно-синий цвет при наведении */
+        transform: translateY(-2px); /* Легкий подъем */
+    }
+
+    /* Адаптивные стили */
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 2em;
+        }
+
+        li {
+            padding: 15px;
+        }
+
+        li h3 {
+            font-size: 1.3em;
+        }
+
+        li p {
+            font-size: 1em;
+        }
+
+        .btn-booking {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .container {
+            margin-top: 70px; /* Уменьшаем отступ для навигационной панели */
+        }
+    }
+
+    @media (max-width: 480px) {
+        h1 {
+            font-size: 1.8em;
+        }
+
+        li {
+            padding: 10px;
+        }
+
+        li h3 {
+            font-size: 1.2em;
+        }
+
+        li p {
+            font-size: 0.9em;
+        }
+
+        .btn-booking {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+
+        .container {
+            margin-top: 60px; /* Еще меньше отступ для навигационной панели */
+        }
+    }
+</style>
+
+<div class="container">
+    <h1>Услуги</h1>
+    <ul>
+        {% for service in services %}
+            <li>
+                <h3>{{ service.name }} ({{ service.get_type_display }}) - {{ service.price }} руб.</h3>
+                <p>{{ service.description }}</p>
+                {% if user.is_authenticated %}
+                    <!-- Кнопка для открытия модального окна -->
+                    <button type="button" class="btn-booking" data-toggle="modal" data-target="#bookingModal{{ service.id }}">
+                        Забронировать
+                    </button>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
