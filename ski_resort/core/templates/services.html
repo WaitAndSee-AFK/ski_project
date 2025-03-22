@@ -268,35 +268,6 @@
             </li>
         {% endfor %}
     </ul>
-
-    <!-- Таблица бронирований -->
-    {% if user.is_authenticated and bookings %}
-    <h2>Ваши бронирования</h2>
-    <table class="bookings-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Услуга</th>
-                <th>Дата начала</th>
-                <th>Время начала</th>
-                <th>Дата окончания</th>
-                <th>Статус</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for booking in bookings %}
-            <tr>
-                <td>{{ booking.id }}</td>
-                <td>{{ booking.service.name }}</td>
-                <td>{{ booking.start_date|date:"d.m.Y" }}</td>
-                <td>{{ booking.start_date|time:"H:i" }}</td>
-                <td>{{ booking.end_date|date:"d.m.Y H:i" }}</td>
-                <td>{% if booking.is_active %}Активно{% else %}Завершено{% endif %}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
 </div>
 
 <!-- Модальное окно для бронирования -->

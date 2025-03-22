@@ -80,7 +80,6 @@ def review_moderation(request):
 
 class HomeView(View):
     """Главная страница"""
-
     def get(self, request):
         complex_info = {
             'name': 'Горнолыжный курорт Алтай',
@@ -95,7 +94,6 @@ class HomeView(View):
 
 class ServicesView(View):
     """Список услуг с бронированиями"""
-
     def get(self, request):
         services = Service.objects.all()
         bookings = Booking.objects.filter(user=request.user) if request.user.is_authenticated else None
@@ -104,7 +102,6 @@ class ServicesView(View):
 
 class PricingView(View):
     """Список оборудования и цен (почасовые и посуточные)"""
-
     def get(self, request):
         equipment_hourly = EquipmentHourly.objects.all()
         equipment_daily = EquipmentDaily.objects.all()
@@ -117,7 +114,6 @@ class PricingView(View):
 
 class RegisterView(View):
     """Регистрация нового пользователя"""
-
     def get(self, request):
         form = CustomUserCreationForm()
         return render(request, 'register.html', {'form': form})
@@ -200,7 +196,6 @@ def book_service(request, service_id):
 
 class BookServiceView(LoginRequiredMixin, View):
     """Создание бронирования через форму"""
-
     def get(self, request):
         form = BookingForm()
         return render(request, 'booking_form.html', {'form': form})
@@ -290,28 +285,39 @@ class BookServiceView(LoginRequiredMixin, View):
 @login_required
 @require_POST
 def edit_booking(request, booking_id):
-    """Редактирование бронирования администратором"""
-    if not request.user.is_staff:
-        messages.warning(request, 'Доступ запрещен')
-        return redirect('home')
-
-    booking = get_object_or_404(Booking, id=booking_id)
-    start_date_str = request.POST.get('start_date')
-    end_date_str = request.POST.get('end_date')
-
+    """Редактирование бронирования пользователем"""
     try:
-        if not start_date_str or not end_date_str:
-            raise ValueError("Дата начала и окончания обязательны")
-        booking.start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
-        booking.end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
-        booking.save()
-        messages.success(request, 'Бронирование успешно обновлено')
-    except ValueError as e:
-        messages.error(request, f'Ошибка при обновлении: {str(e)}')
-    except Exception as e:
-        messages.error(request, f'Ошибка при обновлении: {str(e)}')
+        booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+        data = json.loads(request.body)
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
 
-    return redirect('bookings_admin')
+        if not start_date_str or not end_date_str:
+            return JsonResponse({'success': False, 'error': 'Дата начала и окончания обязательны'})
+
+        start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+        end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
+
+        # Проверка на пересекающиеся бронирования
+        conflicting_bookings = Booking.objects.filter(
+            service=booking.service,
+            is_active=True,
+            start_date__lt=end_date,
+            end_date__gt=start_date
+        ).exclude(id=booking.id)  # Исключаем текущее бронирование
+
+        if conflicting_bookings.exists():
+            return JsonResponse({'success': False, 'error': 'Выбранное время уже занято'})
+
+        booking.start_date = start_date
+        booking.end_date = end_date
+        booking.save()
+
+        return JsonResponse({'success': True, 'message': 'Бронирование успешно обновлено'})
+    except ValueError as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 class AdminBookingsView(LoginRequiredMixin, ListView):
