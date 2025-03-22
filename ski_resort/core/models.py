@@ -1,31 +1,66 @@
 # core/models.py
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MinValueValidator
 
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
 
+class CustomUserManager(BaseUserManager):
+    def create_user(self, phone_number, password=None, **extra_fields):
+        """Создает и сохраняет пользователя с указанным номером телефона и паролем."""
+        if not phone_number:
+            raise ValueError('Номер телефона должен быть указан')
+
+        user = self.model(phone_number=phone_number, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, phone_number, password=None, **extra_fields):
+        """Создает и сохраняет суперпользователя с указанным номером телефона и паролем."""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Суперпользователь должен иметь is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Суперпользователь должен иметь is_superuser=True.')
+
+        return self.create_user(phone_number, password, **extra_fields)
+
+
+class CustomUser(AbstractUser):
+    """Кастомная модель пользователя с phone_number как основным полем для аутентификации"""
+    # Удаляем username = None, чтобы вернуть поле username
+    username = models.CharField(max_length=150, unique=True, verbose_name="Имя пользователя")
+    phone_number = models.CharField(max_length=15, unique=True, verbose_name="Номер телефона")
+    first_name = models.CharField(max_length=30, blank=True, verbose_name="Имя")
+    last_name = models.CharField(max_length=30, blank=True, verbose_name="Фамилия")
+
+    USERNAME_FIELD = 'phone_number'  # Оставляем phone_number как поле для аутентификации
+    REQUIRED_FIELDS = ['first_name', 'username']  # Добавляем username в обязательные поля
+
+    objects = CustomUserManager()
+
+    def __str__(self):
+        return self.phone_number
+
+    class Meta:
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
+
+
+# Остальные модели (Role, Equipment, Service, Review, Booking) остаются без изменений
 class Role(models.Model):
-    # Код роли (уникальный идентификатор)
     role_code = models.CharField(max_length=10, unique=True, verbose_name="Код роли")
-    # Наименование роли
     role_name = models.CharField(max_length=50, verbose_name="Наименование роли")
 
     def __str__(self):
         return f"{self.role_name} ({self.role_code})"
 
-class Review(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100)
-    content = models.TextField()
-    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # Оценка от 1 до 5
-    created_at = models.DateTimeField(auto_now_add=True)
-    approved = models.BooleanField(default=False)
+    class Meta:
+        verbose_name = "Роль"
+        verbose_name_plural = "Роли"
 
-    def __str__(self):
-        return f"{self.title} - {self.user.username}"
 
 class Equipment(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название")
@@ -69,8 +104,24 @@ class Service(models.Model):
         verbose_name_plural = "Услуги"
 
 
+class Review(models.Model):
+    user = models.ForeignKey('CustomUser', on_delete=models.CASCADE, verbose_name="Пользователь")
+    title = models.CharField(max_length=100, verbose_name="Заголовок")
+    content = models.TextField(verbose_name="Содержание")
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], verbose_name="Оценка")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    approved = models.BooleanField(default=False, verbose_name="Одобрено")
+
+    def __str__(self):
+        return f"{self.title} - {self.user.phone_number}"
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+
+
 class Booking(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    user = models.ForeignKey('CustomUser', on_delete=models.CASCADE, verbose_name="Пользователь")
     service = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Услуга")
     equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Снаряжение")
     start_date = models.DateTimeField(verbose_name="Дата начала")
@@ -79,7 +130,7 @@ class Booking(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Активно")
 
     def __str__(self):
-        return f"Бронирование {self.id} - {self.user.username}"
+        return f"Бронирование {self.id} - {self.user.phone_number}"
 
     class Meta:
         verbose_name = "Бронирование"

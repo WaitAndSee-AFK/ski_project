@@ -1,86 +1,109 @@
 /* Общие стили */
 body {
     font-family: 'Roboto', sans-serif;
-    font-size: 18px;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
-    color: #1e90ff;
+    background-color: #22577a;
+    color: #333;
+    font-size: 18px; /* Увеличен размер текста на 2 пункта (было 16px) */
 }
 
-header {
-    background-color: #2c3e50;
-    padding: 10px 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    width: 100%;
-}
-
-nav {
-    display: flex;
-    align-items: center;
-    padding: 0;
-    margin: 0;
-    width: 100%;
-}
-
-.logo-link {
-    display: flex;
-    align-items: center;
-    margin-right: 30px;
-    padding-left: 10px;
-}
-
-.logo {
-    height: 80px;
-    width: auto;
-}
-
-.nav-links {
-    display: flex;
-    align-items: center;
-    gap: 30px;
-}
-
-nav a {
-    color: white;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 20px;
-    transition: color 0.3s;
-}
-
-nav a:hover {
-    color: #3498db;
-}
-
-main {
-    min-height: calc(100vh - 120px);
-    padding: 20px;
-}
-
-footer {
-    position: relative;
-    bottom: 0;
-    width: 100%;
-    background-color: #2c3e50;
-    color: white;
-    text-align: center;
-    padding: 10px 0;
-    margin-top: auto; /* Для flex-контейнера */
-}
-
-body {
+.wrapper {
     display: flex;
     flex-direction: column;
-    min-height: 100vh; /* Минимальная высота страницы */
+    min-height: 100vh;
 }
 
-/* Стили главной страницы */
+/* Навигационная панель */
+.navbar {
+    background-color: #22577a; /* Темный синий цвет */
+    color: #fff; /* Белый цвет текста */
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    justify-content: flex-start; /* Размещение навигационной панели рядом с логотипом */
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000; /* Убедимся, что панель поверх других элементов */
+    height: 60px; /* Фиксированная высота навигационной панели */
+}
+
+.navbar .logo-link {
+    margin-right: 20px; /* Отступ между логотипом и ссылками */
+}
+
+.navbar .logo {
+    width: 80px; /* Размер логотипа */
+    height: auto;
+}
+
+/* Ссылки навигационной панели */
+.nav-links a {
+    color: #fff; /* Белый цвет текста */
+    text-decoration: none;
+    padding: 10px 15px;
+    margin-right: 10px; /* Отступ между ссылками */
+    font-weight: 500;
+    font-size: 20px; /* Увеличен размер текста (было 18px) */
+    transition: all 0.3s ease; /* Плавная анимация для всех свойств */
+    position: relative; /* Для псевдоэлементов */
+}
+
+/* Эффект при наведении на ссылки */
+.nav-links a:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Полупрозрачный белый фон */
+    border-radius: 5px;
+    transform: translateY(-2px); /* Легкий подъем */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Тень при наведении */
+}
+
+/* Подчеркивание при наведении */
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #FFD700; /* Золотой цвет подчеркивания */
+    transform: scaleX(0); /* Начальное состояние (невидимо) */
+    transform-origin: bottom right;
+    transition: transform 0.3s ease; /* Плавная анимация */
+}
+
+.nav-links a:hover::after {
+    transform: scaleX(1); /* Подчеркивание появляется */
+    transform-origin: bottom left;
+}
+
+/* Стиль для кнопки "Администрирование" */
+.nav-links a.admin-link {
+    color: #ff4d4d; /* Красный цвет текста */
+    font-weight: 700; /* Жирный шрифт */
+}
+
+.nav-links a.admin-link:hover {
+    background-color: rgba(255, 77, 77, 0.1); /* Полупрозрачный красный фон */
+}
+
+/* Основной контент */
+.main-content {
+    margin-top: 60px; /* Отступ для навигационной панели */
+    padding: 20px;
+    flex: 1;
+}
+
+/* Верхний прямоугольник (например, блок с заголовком) */
 .hero {
-    text-align: center;
+    background-color: #ffffff;
     padding: 40px 20px;
-    background-color: #ecf0f1;
-    margin-bottom: 40px;
+    margin-top: 60px; /* Отступ для навигационной панели */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    text-align: center;
 }
 
 .hero h1 {
@@ -96,517 +119,119 @@ body {
     margin-bottom: 20px;
 }
 
-.hero-images {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    padding: 0 10px;
+/* Сообщения */
+.messages {
+    margin-bottom: 20px;
 }
-/* width: 400px; /* Ширина изображения */
-/* height: 300px; /* Высота изображения */
-.hero-image {
+
+/* Галерея изображений */
+.image-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px; /* Отступ между изображениями */
+}
+
+.image-gallery img {
+    width: 200px;
+    height: 150px;
+    border-radius: 10px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Подвал */
+footer {
+    background-color: #22577a; /* Темный синий цвет фона */
+    color: #fff; /* Белый цвет текста по умолчанию */
+    padding: 15px;
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    height: auto;
-    object-fit: cover;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.5s;
+    z-index: 1000; /* Убедимся, что подвал поверх других элементов */
+    font-size: 16px; /* Увеличен размер текста (было 14px) */
 }
 
-.features {
-    padding: 20px;
-    background-color: white;
-    margin-bottom: 40px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+footer p {
+    margin: 0; /* Убираем отступы у текста */
+    color: #fff; /* Белый цвет текста */
 }
 
-.features h2 {
-    text-align: center;
-    color: #1e90ff;
-    font-size: 2em;
-    font-weight: 700;
-    margin-bottom: 20px;
+.hidden {
+    opacity: 0;
 }
 
-.feature-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    padding: 0 10px;
+.visible {
+    opacity: 1;
 }
 
-.feature-item {
-    text-align: center;
+/* Адаптивные стили */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 10px;
+        height: 50px; /* Уменьшаем высоту навигационной панели на мобильных */
+    }
+
+    .navbar .logo {
+        width: 60px; /* Уменьшаем логотип на мобильных */
+    }
+
+    .nav-links a {
+        padding: 8px 12px;
+        font-size: 18px; /* Увеличен размер текста (было 16px) */
+    }
+
+    .main-content {
+        margin-top: 50px; /* Уменьшаем отступ для навигационной панели */
+    }
+
+    .hero {
+        margin-top: 50px; /* Уменьшаем отступ для навигационной панели */
+    }
+
+    footer {
+        font-size: 14px; /* Уменьшаем размер текста на мобильных */
+    }
 }
 
-.feature-image {
-    width: 100%; /* Ширина 100% от родительского контейнера */
-    height: auto; /* Автоматическая высота для сохранения пропорций */
-    object-fit: cover;
-    border-radius: 10px;
-    margin-bottom: 10px;
+@media (max-width: 480px) {
+    .navbar .logo {
+        width: 50px; /* Еще меньше логотип на очень маленьких экранах */
+    }
+
+    .nav-links a {
+        padding: 6px 10px;
+        font-size: 16px; /* Увеличен размер текста (было 14px) */
+    }
+
+    .main-content {
+        margin-top: 50px; /* Еще меньше отступ для навигационной панели */
+    }
+
+    .hero {
+        margin-top: 50px; /* Еще меньше отступ для навигационной панели */
+    }
+
+    footer {
+        font-size: 12px; /* Еще меньше размер текста на очень маленьких экранах */
+    }
 }
 
-.feature-item h3 {
-    color: #1e90ff;
-    font-size: 1.5em;
-    font-weight: 700;
-    margin-bottom: 10px;
-}
-
-.feature-item p {
-    color: #2c3e50;
-    font-size: 1em;
-    line-height: 1.5;
-}
-
-.gallery {
-    padding: 20px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
+/* Увеличение шрифта для "Почему нас выбирают" и "Галерея" */
+.why-choose-us h2,
 .gallery h2 {
-    text-align: center;
+    font-size: 2.2em; /* Увеличенный размер шрифта */
     color: #1e90ff;
-    font-size: 2em;
     font-weight: 700;
     margin-bottom: 20px;
 }
 
-.image-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    padding: 0 10px;
-}
-
-/*.gallery-image {
-    width: 400px;
-    height: 300px;
-    object-fit: cover;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-} */
-
-.gallery-image {
-    width: 600px; /* Ширина изображения */
-    height: 500px; /* Автоматическая высота для сохранения пропорций */
-    object-fit: cover;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-
-/* Стили формы */
-.form-section {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 30px; /* Увеличил внутренние отступы */
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.form-section h2 {
-    text-align: center;
-    color: #1e90ff;
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 20px;
-}
-
-.login-form {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group {
-    margin-bottom: 20px; /* Увеличил отступ между группами */
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px; /* Увеличил отступ между меткой и полем ввода */
+.why-choose-us p,
+.gallery p {
+    font-size: 1.2em; /* Увеличенный размер шрифта */
     color: #2c3e50;
-    font-weight: 500;
-}
-
-.form-group input {
-    width: 90%;
-    padding: 12px; /* Увеличил отступы внутри поля ввода */
-    border: 1px solid #ccc;
-    border-radius: 8px; /* Слегка увеличил скругление углов */
-    font-size: 16px;
-    color: #2c3e50;
-    background-color: #f9f9f9;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.form-group input:focus {
-    border-color: #1e90ff;
-    box-shadow: 0 0 8px rgba(30, 144, 255, 0.3); /* Добавил тень при фокусе */
-    outline: none;
-}
-
-.login-form button {
-    padding: 12px;
-    background-color: #1e90ff;
-    color: white;
-    border: none;
-    border-radius: 8px; /* Слегка увеличил скругление углов */
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    margin-top: 10px; /* Добавил отступ сверху */
-}
-
-.login-form button:hover {
-    background-color: #0077cc;
-    transform: scale(1.02); /* Легкое увеличение при наведении */
-}
-
-.login-form button:active {
-    transform: scale(0.98); /* Легкое уменьшение при нажатии */
-}
-
-/* Стили для формы регистрации */
-.register-form {
-    display: flex;
-    flex-direction: column;
-}
-
-.register-form .form-group {
-    margin-bottom: 20px; /* Отступ между группами */
-}
-
-.register-form .form-group label {
-    display: block;
-    margin-bottom: 8px; /* Отступ между меткой и полем ввода */
-    color: #2c3e50;
-    font-weight: 500;
-}
-
-.register-form .form-group input {
-    width: 90%;
-    padding: 12px; /* Внутренние отступы поля ввода */
-    border: 1px solid #ccc;
-    border-radius: 8px; /* Скругление углов */
-    font-size: 16px;
-    color: #2c3e50;
-    background-color: #f9f9f9;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.register-form .form-group input:focus {
-    border-color: #1e90ff;
-    box-shadow: 0 0 8px rgba(30, 144, 255, 0.3); /* Тень при фокусе */
-    outline: none;
-}
-
-.register-form button {
-    padding: 12px;
-    background-color: #1e90ff; /* Цвет кнопки как у формы входа */
-    color: white;
-    border: none;
-    border-radius: 8px; /* Скругление углов */
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    margin-top: 10px; /* Отступ сверху */
-}
-
-.register-form button:hover {
-    background-color: #0077cc; /* Цвет при наведении */
-    transform: scale(1.02); /* Легкое увеличение */
-}
-
-.register-form button:active {
-    transform: scale(0.98); /* Легкое уменьшение при нажатии */
-}
-
-/* Стили для ссылки на регистрацию */
-.register-link {
-    text-align: center;
-    margin-top: 15px;
-    font-size: 16px;
-    color: #2c3e50;
-}
-
-.register-link a {
-    color: #1e90ff;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}
-
-.register-link a:hover {
-    color: #0077cc;
-    text-decoration: underline;
-}
-
-/* Стили для страницы с ценами на прокат снаряжения */
-h1 {
-    text-align: center;
-    color: #1e90ff;
-    font-size: 2.5em;
-    font-weight: 700;
-    margin-bottom: 20px;
-}
-
-ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0 auto;
-    max-width: 800px;
-}
-
-li {
-    background-color: white;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-li:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-li p {
-    color: #2c3e50;
-    font-size: 1em;
-    line-height: 1.5;
-    margin: 10px 0;
-}
-
-li strong {
-    color: #1e90ff;
-    font-size: 1.2em;
-    font-weight: 700;
-}
-
-/* Стили для кнопки бронирования */
-form {
-    margin-top: 15px;
-}
-
-button {
-    padding: 10px 20px;
-    background-color: #1e90ff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-button:hover {
-    background-color: #0077cc;
-    transform: scale(1.05);
-}
-
-button:active {
-    transform: scale(0.95);
-}
-
-/* Стили для сообщения о недоступности */
-li.unavailable {
-    opacity: 0.7;
-    background-color: #f9f9f9;
-}
-
-li.unavailable button {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
-li.unavailable button:hover {
-    background-color: #ccc;
-    transform: none;
-}
-
-/* Адаптивные стили */
-@media (max-width: 768px) {
-    h1 {
-        font-size: 2em;
-    }
-
-    li {
-        padding: 15px;
-    }
-
-    li strong {
-        font-size: 1.1em;
-    }
-
-    li p {
-        font-size: 0.9em;
-    }
-
-    button {
-        font-size: 14px;
-        padding: 8px 16px;
-    }
-}
-
-@media (max-width: 480px) {
-    h1 {
-        font-size: 1.8em;
-    }
-
-    li {
-        padding: 10px;
-    }
-
-    li strong {
-        font-size: 1em;
-    }
-
-    li p {
-        font-size: 0.8em;
-    }
-
-    button {
-        font-size: 12px;
-        padding: 6px 12px;
-    }
-}
-
-/* Стили для страницы профиля */
-.profile-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.profile-container h1 {
-    text-align: center;
-    color: #1e90ff;
-    font-size: 2.5em;
-    font-weight: 700;
-    margin-bottom: 2px;
-}
-
-.profile-container h2 {
-    color: #2c3e50;
-    font-size: 1.8em;
-    font-weight: 300;
-    margin-bottom: 20px;
-    border-bottom: none;
-    padding-bottom: 50px;
-}
-
-/* Стили для списка бронирований */
-.bookings-list {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-
-.booking-item {
-    background-color: #f9f9f9;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.booking-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-.booking-item p {
-    color: #2c3e50;
-    font-size: 1em;
-    line-height: 1.5;
-    margin: 10px 0;
-}
-
-.booking-item strong {
-    color: #1e90ff;
-    font-size: 1.2em;
-    font-weight: 700;
-}
-
-.booking-item .dates {
-    color: #555;
-    font-size: 0.9em;
-    margin-top: 10px;
-}
-
-/* Стили для сообщения об отсутствии бронирований */
-.no-bookings {
-    text-align: center;
-    color: #2c3e50;
-    font-size: 1.2em;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Адаптивные стили */
-@media (max-width: 768px) {
-    .profile-container h1 {
-        font-size: 2em;
-    }
-
-    .profile-container h2 {
-        font-size: 1.5em;
-    }
-
-    .booking-item {
-        padding: 15px;
-    }
-
-    .booking-item p {
-        font-size: 0.9em;
-    }
-
-    .booking-item strong {
-        font-size: 1.1em;
-    }
-
-    .booking-item .dates {
-        font-size: 0.8em;
-    }
-}
-
-@media (max-width: 480px) {
-    .profile-container h1 {
-        font-size: 1.8em;
-    }
-
-    .profile-container h2 {
-        font-size: 1.3em;
-    }
-
-    .booking-item {
-        padding: 10px;
-    }
-
-    .booking-item p {
-        font-size: 0.8em;
-    }
-
-    .booking-item strong {
-        font-size: 1em;
-    }
-
-    .booking-item .dates {
-        font-size: 0.7em;
-    }
+    line-height: 1.6;
 }
