@@ -226,6 +226,31 @@
             margin-top: 60px;
         }
     }
+    .bookings-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 40px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .bookings-table th,
+    .bookings-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .bookings-table th {
+        background-color: #1e90ff;
+        color: white;
+        font-weight: 700;
+    }
+
+    .bookings-table tr:hover {
+        background-color: #f5f5f5;
+    }
 </style>
 
 <div class="container">
@@ -243,6 +268,35 @@
             </li>
         {% endfor %}
     </ul>
+
+    <!-- Таблица бронирований -->
+    {% if user.is_authenticated and bookings %}
+    <h2>Ваши бронирования</h2>
+    <table class="bookings-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Услуга</th>
+                <th>Дата начала</th>
+                <th>Время начала</th>
+                <th>Дата окончания</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr>
+                <td>{{ booking.id }}</td>
+                <td>{{ booking.service.name }}</td>
+                <td>{{ booking.start_date|date:"d.m.Y" }}</td>
+                <td>{{ booking.start_date|time:"H:i" }}</td>
+                <td>{{ booking.end_date|date:"d.m.Y H:i" }}</td>
+                <td>{% if booking.is_active %}Активно{% else %}Завершено{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
 </div>
 
 <!-- Модальное окно для бронирования -->
@@ -277,6 +331,7 @@
 
     function closeModal() {
         document.getElementById('bookingModal').style.display = 'none';
+        document.getElementById('bookingForm').reset();
     }
 
     function getCookie(name) {
@@ -298,13 +353,17 @@
 
     function submitBooking() {
         const form = document.getElementById('bookingForm');
-        const formData = new FormData(form);
         const serviceId = document.getElementById('serviceId').value;
         const bookingDate = document.getElementById('bookingDate').value;
         const bookingTime = document.getElementById('bookingTime').value;
 
-        // Комбинируем дату и время в формат ISO
+        if (!bookingDate || !bookingTime) {
+            alert('Пожалуйста, заполните все поля');
+            return;
+        }
+
         const startDate = `${bookingDate}T${bookingTime}:00`;
+        const endDate = new Date(new Date(startDate).getTime() + 60 * 60 * 1000).toISOString(); // Добавляем 1 час
 
         fetch(`/book_service/${serviceId}/`, {
             method: 'POST',
@@ -315,7 +374,7 @@
             body: JSON.stringify({
                 service_id: serviceId,
                 start_date: startDate,
-                end_date: new Date(new Date(startDate).setDate(new Date(startDate).getDate() + 1)).toISOString()
+                end_date: endDate
             })
         })
         .then(response => response.json())
@@ -323,6 +382,7 @@
             if (data.success) {
                 alert('Бронирование успешно создано!');
                 closeModal();
+                location.reload(); // Обновляем страницу для отображения новой брони
             } else {
                 alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
             }
