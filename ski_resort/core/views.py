@@ -11,8 +11,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django import forms
-from .models import Equipment, Service, Booking, Review, CustomUser
-from .forms import ReviewForm
+from .models import EquipmentHourly, EquipmentDaily, Service, Booking, Review, CustomUser
+from .forms import ReviewForm, BookingForm
 from datetime import datetime
 import json
 
@@ -23,7 +23,7 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta:
         model = CustomUser
-        fields = ('phone_number', 'first_name', 'password1', 'password2')
+        fields = ('username', 'phone_number', 'first_name', 'password1', 'password2')
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
@@ -91,11 +91,16 @@ class ServicesView(ListView):
     template_name = 'services.html'
     context_object_name = 'services'
 
-class PricingView(ListView):
-    """Список оборудования и цен"""
-    model = Equipment
-    template_name = 'pricing.html'
-    context_object_name = 'equipment'
+class PricingView(View):
+    """Список оборудования и цен (почасовые и посуточные)"""
+    def get(self, request):
+        equipment_hourly = EquipmentHourly.objects.all()
+        equipment_daily = EquipmentDaily.objects.all()
+        context = {
+            'equipment_hourly': equipment_hourly,
+            'equipment_daily': equipment_daily,
+        }
+        return render(request, 'pricing.html', context)
 
 class RegisterView(View):
     """Регистрация нового пользователя"""
@@ -129,15 +134,21 @@ class ProfileView(LoginRequiredMixin, ListView):
         return Booking.objects.filter(
             user=self.request.user,
             is_active=True
-        ).select_related('service', 'equipment')
+        ).select_related('service', 'equipment_hourly', 'equipment_daily')
 
 class BookServiceView(LoginRequiredMixin, View):
     """Создание бронирования услуги или оборудования"""
-    def post(self, request, service_id=None, equipment_id=None):
+    def get(self, request):
+        form = BookingForm()
+        return render(request, 'booking_form.html', {'form': form})
+
+    def post(self, request, service_id=None, equipment_hourly_id=None, equipment_daily_id=None):
         try:
             if request.headers.get('Content-Type') == 'application/json':
                 data = json.loads(request.body)
                 service_id = data.get('service_id')
+                equipment_hourly_id = data.get('equipment_hourly_id')
+                equipment_daily_id = data.get('equipment_daily_id')
                 start_date_str = data.get('start_date')
                 end_date_str = data.get('end_date')
 
@@ -147,24 +158,34 @@ class BookServiceView(LoginRequiredMixin, View):
                 start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
                 end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
             else:
-                service_id = service_id or request.POST.get('service_id')
-                equipment_id = equipment_id or request.POST.get('equipment_id')
-                start_date = request.POST.get('start_date') or timezone.now()
-                end_date = request.POST.get('end_date') or (timezone.now() + timezone.timedelta(days=1))
+                form = BookingForm(request.POST)
+                if form.is_valid():
+                    booking = form.save(commit=False)
+                    booking.user = request.user
+                    booking.save()
+                    messages.success(request, 'Бронирование успешно создано!')
+                    return redirect('profile')
+                else:
+                    messages.error(request, 'Исправьте ошибки в форме.')
+                    return render(request, 'booking_form.html', {'form': form})
 
             if service_id:
                 item = get_object_or_404(Service, id=service_id)
                 booking_type = 'service'
-            elif equipment_id:
-                item = get_object_or_404(Equipment, id=equipment_id)
-                booking_type = 'equipment'
+            elif equipment_hourly_id:
+                item = get_object_or_404(EquipmentHourly, id=equipment_hourly_id)
+                booking_type = 'equipment_hourly'
+            elif equipment_daily_id:
+                item = get_object_or_404(EquipmentDaily, id=equipment_daily_id)
+                booking_type = 'equipment_daily'
             else:
                 raise ValueError("Не указан объект бронирования")
 
             Booking.objects.create(
                 user=request.user,
                 service=item if booking_type == 'service' else None,
-                equipment=item if booking_type == 'equipment' else None,
+                equipment_hourly=item if booking_type == 'equipment_hourly' else None,
+                equipment_daily=item if booking_type == 'equipment_daily' else None,
                 start_date=start_date,
                 end_date=end_date
             )
@@ -216,7 +237,7 @@ class AdminBookingsView(LoginRequiredMixin, ListView):
     context_object_name = 'bookings'
 
     def get_queryset(self):
-        return Booking.objects.all().select_related('user', 'service', 'equipment')
+        return Booking.objects.all().select_related('user', 'service', 'equipment_hourly', 'equipment_daily')
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_staff:

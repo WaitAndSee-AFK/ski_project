@@ -31,7 +31,8 @@
         border-radius: 10px;
         overflow: hidden;
         background-color: white; /* Белый фон таблицы */
-        margin-top: 20px; /* Отступ сверху */
+        margin-top: 10px; /* Уменьшенный отступ сверху */
+        margin-bottom: 40px; /* Отступ снизу для разделения таблиц */
     }
 
     /* Стили для заголовков таблицы */
@@ -115,10 +116,24 @@
         font-weight: 700;
     }
 
-    /* Адаптивные стили для заголовка */
+    /* Стили для подзаголовков (Почасовая/Посуточная оплата) */
+    h2 {
+        color: #1e90ff;
+        text-align: center;
+        margin-top: 40px;
+        margin-bottom: 10px; /* Уменьшенный отступ снизу, чтобы подзаголовок был ближе к таблице */
+        font-size: 2em;
+        font-weight: 600;
+    }
+
+    /* Адаптивные стили для заголовков */
     @media (max-width: 768px) {
         h1 {
             font-size: 2em;
+        }
+
+        h2 {
+            font-size: 1.6em;
         }
     }
 
@@ -126,28 +141,64 @@
         h1 {
             font-size: 1.8em;
         }
+
+        h2 {
+            font-size: 1.4em;
+        }
     }
 </style>
 
 <div class="container">
     <h1>Цены на прокат снаряжения</h1>
-    <table class="equipment-table">
-        <thead>
-            <tr>
-                <th>Наименование</th>
-                <th>Цена за день (руб.)</th>
-                <th>Описание</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in equipment %}
+
+    <!-- Таблица для почасового снаряжения -->
+    <h2>Почасовая оплата</h2>
+    {% if equipment_hourly %}
+        <table class="equipment-table">
+            <thead>
                 <tr>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.price_per_day }}</td>
-                    <td>{{ item.description }}</td>
+                    <th>Наименование</th>
+                    <th>Цена за час (руб.)</th>
+                    <th>Описание</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for item in equipment_hourly %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.price_per_hour }}</td>
+                        <td>{{ item.description }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Нет доступного снаряжения с почасовой оплатой.</p>
+    {% endif %}
+
+    <!-- Таблица для посуточного снаряжения -->
+    <h2>Посуточная оплата</h2>
+    {% if equipment_daily %}
+        <table class="equipment-table">
+            <thead>
+                <tr>
+                    <th>Наименование</th>
+                    <th>Цена за день (руб.)</th>
+                    <th>Описание</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in equipment_daily %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.price_per_day }}</td>
+                        <td>{{ item.description }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Нет доступного снаряжения с посуточной оплатой.</p>
+    {% endif %}
 </div>
 {% endblock %}

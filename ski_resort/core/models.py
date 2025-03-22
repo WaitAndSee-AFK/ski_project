@@ -61,8 +61,27 @@ class Role(models.Model):
         verbose_name = "Роль"
         verbose_name_plural = "Роли"
 
+# (цены за час)
+class EquipmentHourly(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Название")
+    description = models.TextField(verbose_name="Описание")
+    price_per_hour = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        verbose_name="Цена за час"
+    )
+    available = models.BooleanField(default=True, verbose_name="Доступно")
 
-class Equipment(models.Model):
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Цена (почасовая оплата)"
+        verbose_name_plural = "Цены (почасовая оплата)"
+
+# (цены за день)
+class EquipmentDaily(models.Model):
     name = models.CharField(max_length=100, verbose_name="Название")
     description = models.TextField(verbose_name="Описание")
     price_per_day = models.DecimalField(
@@ -77,8 +96,8 @@ class Equipment(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Снаряжение"
-        verbose_name_plural = "Снаряжение"
+        verbose_name = "Цена (посуточная оплата)"
+        verbose_name_plural = "Цены (посуточная оплата)"
 
 
 class Service(models.Model):
@@ -123,7 +142,8 @@ class Review(models.Model):
 class Booking(models.Model):
     user = models.ForeignKey('CustomUser', on_delete=models.CASCADE, verbose_name="Пользователь")
     service = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Услуга")
-    equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Снаряжение")
+    equipment_hourly = models.ForeignKey(EquipmentHourly, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Снаряжение (почасовая оплата)")
+    equipment_daily = models.ForeignKey(EquipmentDaily, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Снаряжение (посуточная оплата)")
     start_date = models.DateTimeField(verbose_name="Дата начала")
     end_date = models.DateTimeField(verbose_name="Дата окончания")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
