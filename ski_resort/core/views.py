@@ -1,3 +1,4 @@
+# core/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, View
 from django.contrib.auth import login, authenticate
@@ -10,10 +11,54 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django import forms
 from django.contrib.auth.models import User
-
 from .models import Equipment, Service, Booking, Review, UserProfile  # Добавил UserProfile
 from .forms import ReviewForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView
+from .models import Booking
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from .models import Booking
+
+
+@login_required
+@require_POST
+def edit_booking(request, booking_id):
+    """Редактирование бронирования администратором"""
+    if not request.user.is_staff:
+        messages.warning(request, 'Доступ запрещен')
+        return redirect('home')
+
+    booking = get_object_or_404(Booking, id=booking_id)
+    booking.start_date = request.POST.get('start_date')
+    booking.end_date = request.POST.get('end_date')
+
+    try:
+        booking.save()
+        messages.success(request, 'Бронирование успешно обновлено')
+    except Exception as e:
+        messages.error(request, f'Ошибка при обновлении: {str(e)}')
+
+    return redirect('bookings_admin')
+
+class AdminBookingsView(LoginRequiredMixin, ListView):
+    """Список всех бронирований для администратора"""
+    model = Booking
+    template_name = 'admin_bookings.html'
+    context_object_name = 'bookings'
+
+    def get_queryset(self):
+        # Показываем все бронирования, а не только активные
+        return Booking.objects.all().select_related('user', 'service', 'equipment')
+
+    def get(self, request, *args, **kwargs):
+        # Проверяем, что пользователь является администратором
+        if not request.user.is_staff:
+            messages.warning(request, 'Доступ запрещен')
+            return redirect('home')
+        return super().get(request, *args, **kwargs)
 
 @csrf_exempt
 def cancel_booking(request, booking_id):

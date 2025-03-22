@@ -1,3 +1,4 @@
+# core/forms.py
 from django import forms
 from .models import Review
 from django.contrib.auth.forms import UserCreationForm

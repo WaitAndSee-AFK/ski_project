@@ -20,9 +20,13 @@
             <a href="{% url 'pricing' %}">Цены</a>
             <a href="{% url 'review_list' %}">Отзывы</a>
             {% if user.is_authenticated %}
-                <a href="{% url 'profile' %}">Профиль</a>
-                {% if user.is_staff %} <!-- Проверка прав администратора -->
-                    <a href="/admin/" class="admin-link">Администрирование</a> <!-- Добавлен класс admin-link -->
+                {% if user.is_staff %}
+                    <!-- Для администратора показываем "Бронирования" вместо "Профиль" -->
+                    <a href="{% url 'bookings_admin' %}">Бронирования</a>
+                    <a href="/admin/" class="admin-link">Администрирование</a>
+                {% else %}
+                    <!-- Для обычных пользователей показываем "Профиль" -->
+                    <a href="{% url 'profile' %}">Профиль</a>
                 {% endif %}
                 <a href="{% url 'logout' %}">Выйти</a>
             {% else %}

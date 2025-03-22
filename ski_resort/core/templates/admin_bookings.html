@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    body {
+        background-color: white;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+    .booking-container {
+        max-width: 800px;
+        margin: 100px auto 20px;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .booking-container h1 {
+        text-align: center;
+        color: #007BFF;
+        margin-bottom: 20px;
+    }
+    .booking-dropdown {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        background-color: white;
+        color: #333;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .booking-dropdown:hover {
+        border-color: #007BFF;
+    }
+    .booking-details {
+        display: none;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+    .booking-details.active {
+        display: block;
+    }
+    .booking-details p {
+        margin: 5px 0;
+        font-size: 14px;
+        color: #555;
+    }
+    .booking-details p strong {
+        color: #333;
+    }
+    .no-bookings {
+        text-align: center;
+        color: #777;
+    }
+    .btn {
+        padding: 8px 16px;
+        margin-right: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .btn-edit {
+        background-color: #007BFF;
+        color: white;
+    }
+    .btn-cancel {
+        background-color: #DC3545;
+        color: white;
+    }
+    .btn:hover {
+        opacity: 0.9;
+    }
+    .edit-form {
+        margin-top: 15px;
+        display: none;
+    }
+    .edit-form input {
+        padding: 5px;
+        margin: 5px 0;
+        width: 100%;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+    .btn-save {
+        background-color: #28A745;
+        color: white;
+    }
+</style>
+
+<!-- Основной контент -->
+<div class="booking-container">
+    <h1>Все бронирования</h1>
+    {% if bookings %}
+        <select class="booking-dropdown" id="booking-select" onchange="showBookingDetails()">
+            <option value="">Выберите бронирование</option>
+            {% for booking in bookings %}
+                <option value="{{ booking.id }}">
+                    {{ booking.user.first_name }} {{ booking.user.last_name }} - {{ booking.service.name|default:"Без услуги" }}
+                </option>
+            {% endfor %}
+        </select>
+
+        {% for booking in bookings %}
+            <div id="booking-{{ booking.id }}" class="booking-details">
+                <p><strong>Имя и фамилия:</strong> {{ booking.user.first_name }} {{ booking.user.last_name }}</p>
+                <p><strong>Услуга:</strong> {{ booking.service.name|default:"—" }}</p>
+                <p><strong>Снаряжение:</strong> {{ booking.equipment.name|default:"—" }}</p>
+                <p><strong>Дата начала:</strong> {{ booking.start_date }}</p>
+                <p><strong>Дата окончания:</strong> {{ booking.end_date }}</p>
+                <p><strong>Статус:</strong> {% if booking.is_active %}Активно{% else %}Завершено{% endif %}</p>
+
+                <!-- Кнопки управления -->
+                <button class="btn btn-edit" onclick="showEditForm('{{ booking.id }}')">Изменить</button>
+                <button class="btn btn-cancel" onclick="cancelBooking('{{ booking.id }}')">Отменить</button>
+
+                <!-- Форма редактирования -->
+                <form id="edit-form-{{ booking.id }}" class="edit-form" method="POST" action="{% url 'edit_booking' booking.id %}">
+                    {% csrf_token %}
+                    <input type="datetime-local" name="start_date" value="{{ booking.start_date|date:'Y-m-d\TH:i' }}" required>
+                    <input type="datetime-local" name="end_date" value="{{ booking.end_date|date:'Y-m-d\TH:i' }}" required>
+                    <button type="submit" class="btn btn-save">Сохранить</button>
+                </form>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="no-bookings">Бронирований пока нет.</p>
+    {% endif %}
+</div>
+
+<script>
+    function showBookingDetails() {
+        var select = document.getElementById('booking-select');
+        var bookingId = select.value;
+        var allDetails = document.querySelectorAll('.booking-details');
+
+        // Скрываем все детали бронирований
+        allDetails.forEach(function(detail) {
+            detail.classList.remove('active');
+        });
+
+        // Показываем выбранное бронирование, если ID не пустой
+        if (bookingId) {
+            var selectedDetail = document.getElementById('booking-' + bookingId);
+            if (selectedDetail) {
+                selectedDetail.classList.add('active');
+            }
+        }
+    }
+
+    function showEditForm(bookingId) {
+        var form = document.getElementById('edit-form-' + bookingId);
+        if (form.style.display === 'block') {
+            form.style.display = 'none';
+        } else {
+            form.style.display = 'block';
+        }
+    }
+
+    function cancelBooking(bookingId) {
+        if (confirm('Вы уверены, что хотите отменить это бронирование?')) {
+            fetch('/cancel_booking/' + bookingId + '/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload(); // Обновляем страницу при успехе
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Произошла ошибка: ' + error);
+            });
+        }
+    }
+</script>
+{% endblock %}
