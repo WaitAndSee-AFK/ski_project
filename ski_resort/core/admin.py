@@ -5,23 +5,22 @@ from .models import CustomUser, Role, EquipmentHourly, EquipmentDaily, Service, 
 
 # Кастомный админ-класс для CustomUser (без изменений)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('phone_number', 'username', 'first_name', 'last_name', 'is_staff', 'is_superuser')
+    list_display = ('phone_number', 'username', 'first_name', 'last_name', 'is_staff', 'is_superuser') # поля показывать в списке пользователей
     fieldsets = (
         (None, {'fields': ('phone_number', 'password')}),
         ('Персональная информация', {'fields': ('username', 'first_name', 'last_name')}),
         ('Разрешения', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Важные даты', {'fields': ('last_login', 'date_joined')}),
-    )
+    ) # группировка полей на странице редактирования
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
             'fields': ('phone_number', 'username', 'first_name', 'last_name', 'password1', 'password2', 'is_staff', 'is_superuser'),
         }),
-    )
-    search_fields = ('phone_number', 'username', 'first_name', 'last_name')
-    list_filter = ('is_staff', 'is_superuser', 'is_active', 'groups')
-    ordering = ('phone_number',)
-    filter_horizontal = ('groups', 'user_permissions',)
+    ) # поля при создании нового пользователя
+    search_fields = ('phone_number', 'username', 'first_name', 'last_name') # по каким полям можно искать
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'groups') # по каким полям фильтровать
+    ordering = ('phone_number',) # сортировка по умолчанию
 
 # Регистрируем CustomUser
 admin.site.register(CustomUser, CustomUserAdmin)
@@ -60,7 +59,7 @@ class ReviewAdmin(admin.ModelAdmin):
     list_filter = ('approved', 'rating')
     search_fields = ('title', 'content', 'user__phone_number')
 
-# Регистрируем Booking (обновляем для новых полей)
+# Регистрируем Booking
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'service', 'equipment_hourly', 'equipment_daily', 'start_date', 'end_date', 'is_active')

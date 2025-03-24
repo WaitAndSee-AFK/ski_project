@@ -7,6 +7,7 @@ from .models import CustomUser
 from django import forms
 from .models import Booking, EquipmentHourly, EquipmentDaily, Service
 
+# форма для бронирования услуги
 class BookingForm(forms.ModelForm):
     class Meta:
         model = Booking
@@ -28,11 +29,13 @@ class BookingForm(forms.ModelForm):
             raise forms.ValidationError("Выберите хотя бы одну услугу или снаряжение.")
         return cleaned_data
 
+# форма для создания пользователя
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = CustomUser
         fields = ('username', 'phone_number', 'first_name', 'password1', 'password2')
 
+ # форма для заполнения отзыва
 class ReviewForm(forms.ModelForm):
     class Meta:
         model = Review

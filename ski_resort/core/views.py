@@ -17,7 +17,7 @@ from datetime import datetime
 import json
 
 
-# Форма для регистрации
+# форма для регистрации
 class CustomUserCreationForm(UserCreationForm):
     phone_number = forms.CharField(max_length=15, required=True, label='Номер телефона')
     first_name = forms.CharField(max_length=30, required=False, label='Имя')
@@ -33,9 +33,9 @@ class CustomUserCreationForm(UserCreationForm):
         return phone_number
 
 
+# отмена бронирования
 @login_required
 def cancel_booking(request, booking_id):
-    """Отмена бронирования пользователем"""
     if request.method == 'POST':
         try:
             booking = get_object_or_404(Booking, id=booking_id, user=request.user)
@@ -46,15 +46,15 @@ def cancel_booking(request, booking_id):
     return JsonResponse({'success': False, 'error': 'Недопустимый метод запроса'})
 
 
+# список одобренных отзывов
 def review_list(request):
-    """Список утвержденных отзывов"""
     reviews = Review.objects.filter(approved=True).order_by('-created_at')
     return render(request, 'review_list.html', {'reviews': reviews})
 
 
+# создание нового отзыва
 @login_required
 def create_review(request):
-    """Создание нового отзыва"""
     if request.method == 'POST':
         form = ReviewForm(request.POST)
         if form.is_valid():
@@ -68,18 +68,17 @@ def create_review(request):
     return render(request, 'review_form.html', {'form': form})
 
 
+# модерация отзывов
 @login_required
 def review_moderation(request):
-    """Модерация отзывов (только для персонала)"""
     if request.user.is_staff:
         reviews = Review.objects.filter(approved=False)
         return render(request, 'review_moderation.html', {'reviews': reviews})
     messages.warning(request, 'У вас нет прав для доступа к этой странице.')
     return redirect('review_list')
 
-
+# главная страница
 class HomeView(View):
-    """Главная страница"""
     def get(self, request):
         complex_info = {
             'name': 'Горнолыжный курорт Алтай',
@@ -92,16 +91,16 @@ class HomeView(View):
         return render(request, 'home.html', context)
 
 
+# cписок услуг с бронированиями
 class ServicesView(View):
-    """Список услуг с бронированиями"""
     def get(self, request):
         services = Service.objects.all()
         bookings = Booking.objects.filter(user=request.user) if request.user.is_authenticated else None
         return render(request, 'services.html', {'services': services, 'bookings': bookings})
 
 
+# цены из таблтцы почасовые и посуточные
 class PricingView(View):
-    """Список оборудования и цен (почасовые и посуточные)"""
     def get(self, request):
         equipment_hourly = EquipmentHourly.objects.all()
         equipment_daily = EquipmentDaily.objects.all()
@@ -112,8 +111,8 @@ class PricingView(View):
         return render(request, 'pricing.html', context)
 
 
+# регистрация нового пользователя
 class RegisterView(View):
-    """Регистрация нового пользователя"""
     def get(self, request):
         form = CustomUserCreationForm()
         return render(request, 'register.html', {'form': form})
@@ -135,8 +134,8 @@ class RegisterView(View):
         return render(request, 'register.html', {'form': form})
 
 
+# профиль пользователя с активными бронированиями
 class ProfileView(LoginRequiredMixin, ListView):
-    """Профиль пользователя с активными бронированиями"""
     model = Booking
     template_name = 'profile.html'
     context_object_name = 'bookings'
@@ -148,19 +147,19 @@ class ProfileView(LoginRequiredMixin, ListView):
         ).select_related('service', 'equipment_hourly', 'equipment_daily')
 
 
+# создание бронирования услуги
 @csrf_exempt
 @login_required
 def book_service(request, service_id):
-    """Создание бронирования услуги"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             service = Service.objects.get(id=service_id)
 
             start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
-            end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
+            end_date = datetime.fromisoformat(data['end_date'].replace('Z', '-03:00'))
 
-            # Проверка на существование пересекающихся бронирований
+            # проверка на существование пересекающихся бронирований
             conflicting_bookings = Booking.objects.filter(
                 service=service,
                 is_active=True,
@@ -171,7 +170,7 @@ def book_service(request, service_id):
             if conflicting_bookings.exists():
                 return JsonResponse({'success': False, 'error': 'Выбранное время уже занято'})
 
-            # Создание нового бронирования
+            # создание нового бронирования
             booking = Booking.objects.create(
                 user=request.user,
                 service=service,
@@ -194,8 +193,8 @@ def book_service(request, service_id):
     return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
 
 
+# создание бронирования через форму
 class BookServiceView(LoginRequiredMixin, View):
-    """Создание бронирования через форму"""
     def get(self, request):
         form = BookingForm()
         return render(request, 'booking_form.html', {'form': form})
@@ -282,10 +281,11 @@ class BookServiceView(LoginRequiredMixin, View):
         return redirect('profile')
 
 
+# редактирование бронирования пользователем
 @login_required
 @require_POST
 def edit_booking(request, booking_id):
-    """Редактирование бронирования пользователем"""
+
     try:
         booking = get_object_or_404(Booking, id=booking_id, user=request.user)
         data = json.loads(request.body)
@@ -298,7 +298,7 @@ def edit_booking(request, booking_id):
         start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
         end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
 
-        # Проверка на пересекающиеся бронирования
+        # проверка на пересекающиеся бронирования
         conflicting_bookings = Booking.objects.filter(
             service=booking.service,
             is_active=True,
@@ -320,8 +320,8 @@ def edit_booking(request, booking_id):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+# список всех бронирований для администратора
 class AdminBookingsView(LoginRequiredMixin, ListView):
-    """Список всех бронирований для администратора"""
     model = Booking
     template_name = 'admin_bookings.html'
     context_object_name = 'bookings'

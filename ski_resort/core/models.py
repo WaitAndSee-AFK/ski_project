@@ -3,10 +3,10 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MinValueValidator
 
-
+# для регистрация супер пользоваетля
 class CustomUserManager(BaseUserManager):
     def create_user(self, phone_number, password=None, **extra_fields):
-        """Создает и сохраняет пользователя с указанным номером телефона и паролем."""
+
         if not phone_number:
             raise ValueError('Номер телефона должен быть указан')
 
@@ -16,7 +16,6 @@ class CustomUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, phone_number, password=None, **extra_fields):
-        """Создает и сохраняет суперпользователя с указанным номером телефона и паролем."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
 
@@ -27,10 +26,8 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(phone_number, password, **extra_fields)
 
-
+# обыкновенный пользователь
 class CustomUser(AbstractUser):
-    """Кастомная модель пользователя с phone_number как основным полем для аутентификации"""
-    # Удаляем username = None, чтобы вернуть поле username
     username = models.CharField(max_length=150, unique=True, verbose_name="Имя пользователя")
     phone_number = models.CharField(max_length=15, unique=True, verbose_name="Номер телефона")
     first_name = models.CharField(max_length=30, blank=True, verbose_name="Имя")
@@ -48,8 +45,7 @@ class CustomUser(AbstractUser):
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
 
-
-# Остальные модели (Role, Equipment, Service, Review, Booking) остаются без изменений
+# роль
 class Role(models.Model):
     role_code = models.CharField(max_length=10, unique=True, verbose_name="Код роли")
     role_name = models.CharField(max_length=50, verbose_name="Наименование роли")
@@ -99,7 +95,7 @@ class EquipmentDaily(models.Model):
         verbose_name = "Цена (посуточная оплата)"
         verbose_name_plural = "Цены (посуточная оплата)"
 
-
+# услуги
 class Service(models.Model):
     SERVICE_TYPES = (
         ('rental', 'Прокат'),
@@ -122,7 +118,7 @@ class Service(models.Model):
         verbose_name = "Услуга"
         verbose_name_plural = "Услуги"
 
-
+# отзыв
 class Review(models.Model):
     user = models.ForeignKey('CustomUser', on_delete=models.CASCADE, verbose_name="Пользователь")
     title = models.CharField(max_length=100, verbose_name="Заголовок")
@@ -138,7 +134,7 @@ class Review(models.Model):
         verbose_name = "Отзыв"
         verbose_name_plural = "Отзывы"
 
-
+# бронирования
 class Booking(models.Model):
     user = models.ForeignKey('CustomUser', on_delete=models.CASCADE, verbose_name="Пользователь")
     service = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Услуга")
