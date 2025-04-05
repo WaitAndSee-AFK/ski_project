@@ -32,7 +32,11 @@
                     <!-- Для обычных пользователей показываем "Профиль" -->
                     <a href="{% url 'profile' %}">Профиль</a>
                 {% endif %}
-                <a href="{% url 'logout' %}">Выйти</a>
+                <form class="logoutButton" id="logout-form" method="post" action="/logout/">
+                    {% csrf_token %}
+<!--                    <input type="hidden" name="csrfmiddlewaretoken" value="BTRJYL6Ixj6Gda9XYsyej0r0f9cmSj7FTfW6faU4TZOmkP1jQOECqQLKKs3tuEBQ">-->
+                    <button type="submit">Выйти</button>
+                </form>
             {% else %}
                 <a href="{% url 'login' %}">Войти</a>
             {% endif %}
