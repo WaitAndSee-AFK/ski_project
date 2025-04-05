@@ -1,4 +1,3 @@
-# core/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, View
 from django.contrib.auth import login, authenticate
@@ -11,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django import forms
-from .models import EquipmentHourly, EquipmentDaily, Service, Booking, Review, CustomUser
+from core.models import Equipment, Service, Booking, Review, CustomUser
 from .forms import ReviewForm, BookingForm
 from datetime import datetime
 import json
@@ -39,7 +38,8 @@ def cancel_booking(request, booking_id):
     if request.method == 'POST':
         try:
             booking = get_object_or_404(Booking, id=booking_id, user=request.user)
-            booking.delete()
+            booking.status = 'canceled'
+            booking.save()
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -77,6 +77,7 @@ def review_moderation(request):
     messages.warning(request, 'У вас нет прав для доступа к этой странице.')
     return redirect('review_list')
 
+
 # главная страница
 class HomeView(View):
     def get(self, request):
@@ -91,7 +92,7 @@ class HomeView(View):
         return render(request, 'home.html', context)
 
 
-# cписок услуг с бронированиями
+# список услуг с бронированиями
 class ServicesView(View):
     def get(self, request):
         services = Service.objects.all()
@@ -99,14 +100,14 @@ class ServicesView(View):
         return render(request, 'services.html', {'services': services, 'bookings': bookings})
 
 
-# цены из таблтцы почасовые и посуточные
+# цены из таблицы почасовые и посуточные
 class PricingView(View):
     def get(self, request):
-        equipment_hourly = EquipmentHourly.objects.all()
-        equipment_daily = EquipmentDaily.objects.all()
+        services = Service.objects.all()
+        equipment = Equipment.objects.all()
         context = {
-            'equipment_hourly': equipment_hourly,
-            'equipment_daily': equipment_daily,
+            'services': services,
+            'equipment': equipment,
         }
         return render(request, 'pricing.html', context)
 
@@ -143,8 +144,8 @@ class ProfileView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         return Booking.objects.filter(
             user=self.request.user,
-            is_active=True
-        ).select_related('service', 'equipment_hourly', 'equipment_daily')
+            status='active'
+        ).select_related('service', 'equipment')
 
 
 # создание бронирования услуги
@@ -157,12 +158,12 @@ def book_service(request, service_id):
             service = Service.objects.get(id=service_id)
 
             start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
-            end_date = datetime.fromisoformat(data['end_date'].replace('Z', '-03:00'))
+            end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
 
             # проверка на существование пересекающихся бронирований
             conflicting_bookings = Booking.objects.filter(
                 service=service,
-                is_active=True,
+                status='active',
                 start_date__lt=end_date,
                 end_date__gt=start_date
             )
@@ -176,7 +177,7 @@ def book_service(request, service_id):
                 service=service,
                 start_date=start_date,
                 end_date=end_date,
-                is_active=True
+                status='active'
             )
 
             return JsonResponse({
@@ -199,15 +200,15 @@ class BookServiceView(LoginRequiredMixin, View):
         form = BookingForm()
         return render(request, 'booking_form.html', {'form': form})
 
-    def post(self, request, service_id=None, equipment_hourly_id=None, equipment_daily_id=None):
+    def post(self, request, service_id=None, equipment_id=None):
         try:
             if request.headers.get('Content-Type') == 'application/json':
                 data = json.loads(request.body)
                 service_id = data.get('service_id')
-                equipment_hourly_id = data.get('equipment_hourly_id')
-                equipment_daily_id = data.get('equipment_daily_id')
+                equipment_id = data.get('equipment_id')
                 start_date_str = data.get('start_date')
                 end_date_str = data.get('end_date')
+                duration_type = data.get('duration_type', 'hour')
 
                 if not start_date_str or not end_date_str:
                     raise ValueError("Дата начала и окончания обязательны")
@@ -219,6 +220,7 @@ class BookServiceView(LoginRequiredMixin, View):
                 if form.is_valid():
                     booking = form.save(commit=False)
                     booking.user = request.user
+                    booking.status = 'active'
                     booking.save()
                     messages.success(request, 'Бронирование успешно создано!')
                     return redirect('profile')
@@ -229,24 +231,20 @@ class BookServiceView(LoginRequiredMixin, View):
             if service_id:
                 item = get_object_or_404(Service, id=service_id)
                 booking_type = 'service'
-            elif equipment_hourly_id:
-                item = get_object_or_404(EquipmentHourly, id=equipment_hourly_id)
-                booking_type = 'equipment_hourly'
-            elif equipment_daily_id:
-                item = get_object_or_404(EquipmentDaily, id=equipment_daily_id)
-                booking_type = 'equipment_daily'
+            elif equipment_id:
+                item = get_object_or_404(Equipment, id=equipment_id)
+                booking_type = 'equipment'
             else:
                 raise ValueError("Не указан объект бронирования")
 
             # Проверка пересечений для всех типов бронирований
             conflicting_bookings = Booking.objects.filter(
-                is_active=True,
+                status='active',
                 start_date__lt=end_date,
                 end_date__gt=start_date
             ).filter(
                 service=item if booking_type == 'service' else None,
-                equipment_hourly=item if booking_type == 'equipment_hourly' else None,
-                equipment_daily=item if booking_type == 'equipment_daily' else None
+                equipment=item if booking_type == 'equipment' else None
             )
 
             if conflicting_bookings.exists():
@@ -255,11 +253,11 @@ class BookServiceView(LoginRequiredMixin, View):
             booking = Booking.objects.create(
                 user=request.user,
                 service=item if booking_type == 'service' else None,
-                equipment_hourly=item if booking_type == 'equipment_hourly' else None,
-                equipment_daily=item if booking_type == 'equipment_daily' else None,
+                equipment=item if booking_type == 'equipment' else None,
                 start_date=start_date,
                 end_date=end_date,
-                is_active=True
+                duration_type=duration_type,
+                status='active'
             )
 
             if request.headers.get('Content-Type') == 'application/json':
@@ -285,7 +283,6 @@ class BookServiceView(LoginRequiredMixin, View):
 @login_required
 @require_POST
 def edit_booking(request, booking_id):
-
     try:
         booking = get_object_or_404(Booking, id=booking_id, user=request.user)
         data = json.loads(request.body)
@@ -301,7 +298,7 @@ def edit_booking(request, booking_id):
         # проверка на пересекающиеся бронирования
         conflicting_bookings = Booking.objects.filter(
             service=booking.service,
-            is_active=True,
+            status='active',
             start_date__lt=end_date,
             end_date__gt=start_date
         ).exclude(id=booking.id)  # Исключаем текущее бронирование
@@ -327,7 +324,7 @@ class AdminBookingsView(LoginRequiredMixin, ListView):
     context_object_name = 'bookings'
 
     def get_queryset(self):
-        return Booking.objects.all().select_related('user', 'service', 'equipment_hourly', 'equipment_daily')
+        return Booking.objects.all().select_related('user', 'service', 'equipment')
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_staff:
