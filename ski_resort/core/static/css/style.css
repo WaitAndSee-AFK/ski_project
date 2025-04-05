@@ -235,3 +235,43 @@ footer p {
     color: #2c3e50;
     line-height: 1.6;
 }
+
+/* Исправленные стили для кнопки выхода */
+.logoutButton {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.logoutButton button {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-size: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    line-height: normal; /* Важно для выравнивания */
+    vertical-align: middle; /* Выравнивание по центру */
+}
+
+.logoutButton button:hover {
+    background-color: #e63939;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Адаптивные стили для кнопки */
+@media (max-width: 768px) {
+    .logoutButton {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+
+    .logoutButton button {
+        width: 100%;
+        padding: 8px;
+    }
+}
