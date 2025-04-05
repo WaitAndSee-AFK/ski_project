@@ -7,14 +7,14 @@
         font-family: 'Arial', sans-serif;
         margin: 0;
         padding: 0;
-        background-color: #ffffff; /* Белый фон */
+        background-color: #ffffff;
     }
 
     .form-section {
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 100px 20px 40px; /* Увеличен отступ сверху, чтобы форма не перекрывалась навигационной панелью */
+        padding: 100px 20px 40px;
     }
 
     .form-container {
@@ -118,7 +118,6 @@
         font-size: 0.9em;
     }
 
-    /* Анимация для кнопки */
     .submit-btn {
         transition: background-color 0.3s ease, transform 0.2s ease;
     }
@@ -127,7 +126,6 @@
         transform: scale(1.05);
     }
 
-    /* Адаптивные стили */
     @media (max-width: 480px) {
         .form-container {
             padding: 20px;
@@ -154,7 +152,6 @@
 <section class="form-section">
     <div class="form-container">
         <h2 class="form-title">Регистрация</h2>
-        <!-- Отображение сообщений -->
         {% if messages %}
             <div class="messages">
                 {% for message in messages %}
@@ -164,18 +161,20 @@
         {% endif %}
         <form method="post" class="register-form">
             {% csrf_token %}
-            <!-- Поле username -->
+
+            <!-- Поле first_name (теперь обязательное) -->
             <div class="form-group">
-                <label for="{{ form.username.id_for_label }}">Имя пользователя:</label>
-                {{ form.username }}
-                {% if form.username.errors %}
+                <label for="{{ form.first_name.id_for_label }}">Имя:</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
                     <div class="error">
-                        {% for error in form.username.errors %}
+                        {% for error in form.first_name.errors %}
                             {{ error }}
                         {% endfor %}
                     </div>
                 {% endif %}
             </div>
+
             <!-- Поле phone_number -->
             <div class="form-group">
                 <label for="{{ form.phone_number.id_for_label }}">Номер телефона:</label>
@@ -188,18 +187,7 @@
                     </div>
                 {% endif %}
             </div>
-            <!-- Поле first_name -->
-            <div class="form-group">
-                <label for="{{ form.first_name.id_for_label }}">Имя (необязательно):</label>
-                {{ form.first_name }}
-                {% if form.first_name.errors %}
-                    <div class="error">
-                        {% for error in form.first_name.errors %}
-                            {{ error }}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
+
             <!-- Поле password1 -->
             <div class="form-group">
                 <label for="{{ form.password1.id_for_label }}">Пароль:</label>
@@ -212,6 +200,7 @@
                     </div>
                 {% endif %}
             </div>
+
             <!-- Поле password2 -->
             <div class="form-group">
                 <label for="{{ form.password2.id_for_label }}">Подтверждение пароля:</label>
@@ -224,7 +213,7 @@
                     </div>
                 {% endif %}
             </div>
-            <!-- Общие ошибки формы -->
+
             {% if form.non_field_errors %}
                 <div class="error">
                     {% for error in form.non_field_errors %}
@@ -232,6 +221,7 @@
                     {% endfor %}
                 </div>
             {% endif %}
+
             <button type="submit" class="submit-btn">Зарегистрироваться</button>
         </form>
         <p class="login-link">Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
