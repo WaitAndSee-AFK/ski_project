@@ -1,10 +1,8 @@
 # core/forms.py
 from django import forms
-from .models import Review, CustomUser, Booking, Service, Equipment
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from .models import Review, CustomUser, Booking, Service, Equipment
 
 
 class BookingFilterForm(forms.Form):
@@ -13,9 +11,11 @@ class BookingFilterForm(forms.Form):
     start_date = forms.DateField(required=False, label='С даты', widget=forms.DateInput(attrs={'type': 'date'}))
     end_date = forms.DateField(required=False, label='По дату', widget=forms.DateInput(attrs={'type': 'date'}))
 
-class CustomAuthenticationForm(AuthenticationForm):
-    username = forms.CharField(label='Номер телефона', widget=forms.TextInput(attrs={'class': 'form-control'}))
+
+class CustomAuthenticationForm(forms.Form):
+    phone_number = forms.CharField(label='Номер телефона', widget=forms.TextInput(attrs={'class': 'form-control'}))
     password = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
 
 # Форма для бронирования услуги
 class BookingForm(forms.ModelForm):
@@ -45,26 +45,41 @@ class BookingForm(forms.ModelForm):
         service = cleaned_data.get('service')
         duration_type = cleaned_data.get('duration_type')
 
-        # Проверка, что дата окончания позже даты начала
         if start_date and end_date and end_date <= start_date:
             raise forms.ValidationError("Дата окончания должна быть позже даты начала.")
 
-        # Проверка, что выбрана услуга или оборудование
         if not service and not equipment:
             raise forms.ValidationError("Выберите хотя бы одну услугу или оборудование.")
 
-        # Проверка, что если выбрано оборудование, то указан тип длительности
         if equipment and not duration_type:
             raise forms.ValidationError("Укажите тип длительности (час или день) для оборудования.")
 
-        # Проверка доступности оборудования
         if equipment and equipment.status == 'repair':
             raise forms.ValidationError("Выбранное оборудование находится в ремонте.")
 
         return cleaned_data
 
 
-class CustomUserCreationForm(forms.ModelForm):
+# Форма регистрации пользователя
+class CustomUserCreationForm(UserCreationForm):
+    phone_number = forms.CharField(
+        label='Мобильный телефон',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '+7 (XXX) XXX-XX-XX',
+            'pattern': r'^\+7\s?[\(]?\d{3}[\)]?\s?\d{3}[\-]?\d{2}[\-]?\d{2}$',
+            'title': 'Формат: +7 (XXX) XXX-XX-XX'
+        }),
+        help_text='Формат: +7 (XXX) XXX-XX-XX'
+    )
+    first_name = forms.CharField(
+        label='Ваше имя',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ваше настоящее имя',
+            'required': 'required'
+        })
+    )
     password1 = forms.CharField(
         label='Пароль',
         widget=forms.PasswordInput(attrs={
@@ -72,7 +87,6 @@ class CustomUserCreationForm(forms.ModelForm):
             'placeholder': 'Минимум 8 символов',
             'minlength': '8'
         }),
-        min_length=8,
         help_text='Минимум 8 символов'
     )
     password2 = forms.CharField(
@@ -85,34 +99,14 @@ class CustomUserCreationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ('first_name', 'phone_number')
-        widgets = {
-            'first_name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Ваше настоящее имя',
-                'required': 'required'
-            }),
-            'phone_number': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': '+7 (___) ___-__-__',
-                'pattern': '^\+7\s?[\(]?\d{3}[\)]?\s?\d{3}[\-]?\d{2}[\-]?\d{2}$',
-                'title': 'Формат: +7 (XXX) XXX-XX-XX'
-            }),
-        }
-        labels = {
-            'first_name': 'Ваше имя',
-            'phone_number': 'Мобильный телефон',
-        }
-        help_texts = {
-            'phone_number': 'Формат: +7 (XXX) XXX-XX-XX',
-        }
+        fields = ('first_name', 'phone_number', 'password1', 'password2')
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
         if not phone_number.startswith('+7'):
             raise ValidationError("Номер должен начинаться с +7")
-        if len(phone_number) < 11:
-            raise ValidationError("Номер слишком короткий")
+        if len(phone_number.replace(' ', '').replace('(', '').replace(')', '').replace('-', '')) != 12:
+            raise ValidationError("Номер должен содержать 10 цифр после +7")
         if CustomUser.objects.filter(phone_number=phone_number).exists():
             raise ValidationError("Этот номер уже зарегистрирован")
         return phone_number
@@ -123,17 +117,18 @@ class CustomUserCreationForm(forms.ModelForm):
         password2 = cleaned_data.get("password2")
 
         if password1 and password2 and password1 != password2:
-            self.add_error('password2', "Пароли не совпадают")
+            raise ValidationError("Пароли не совпадают")
 
         return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.username = self.cleaned_data['phone_number']  # Используем телефон как логин
-        user.set_password(self.cleaned_data["password1"])
+        user.username = self.cleaned_data['phone_number']  # Используем телефон как username
+        user.phone_number = self.cleaned_data['phone_number']
         if commit:
             user.save()
         return user
+
 
 # Форма для заполнения отзыва
 class ReviewForm(forms.ModelForm):

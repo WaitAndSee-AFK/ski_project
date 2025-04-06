@@ -1,204 +1,464 @@
-<!-- core/templates/pricing.html -->
 {% extends 'base.html' %}
 {% block content %}
 <style>
-    /* Общие стили для страницы */
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
         padding: 0;
-        background-color: white; /* Белый фон страницы */
+        background-color: white;
         color: #343a40;
         line-height: 1.6;
     }
 
     .container {
         width: 100%;
-        max-width: 1800px; /* Увеличиваем максимальную ширину контейнера */
+        max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
-        margin-top: 80px; /* Отступ сверху для навигационной панели */
-        display: flex;
-        flex-direction: column;
-        align-items: center; /* Центрируем содержимое контейнера */
+        margin-top: 80px;
     }
 
-    /* Общие стили для таблицы */
-    .equipment-table {
-        width: 100%; /* Таблица занимает всю ширину контейнера */
+    .price-table {
+        width: 100%;
         border-collapse: collapse;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
+        border-radius: 8px;
         overflow: hidden;
-        background-color: white; /* Белый фон таблицы */
-        margin-top: 10px; /* Уменьшенный отступ сверху */
-        margin-bottom: 40px; /* Отступ снизу для разделения таблиц */
+        margin-bottom: 40px;
+        background-color: white;
     }
 
-    /* Стили для заголовков таблицы */
-    .equipment-table thead {
-        background-color: #1e90ff; /* Синий цвет заголовка */
+    .price-table thead {
+        background-color: #1e90ff;
         color: white;
     }
 
-    .equipment-table th {
-        padding: 15px;
+    .price-table th, .price-table td {
+        padding: 12px 15px;
         text-align: left;
-        font-size: 1.1em;
-        font-weight: 700;
-    }
-
-    /* Стили для строк таблицы */
-    .equipment-table tbody tr {
         border-bottom: 1px solid #f0f0f0;
-        transition: background-color 0.3s ease;
     }
 
-    .equipment-table tbody tr:hover {
-        background-color: #f9f9f9; /* Легкий фон при наведении */
-    }
-
-    .equipment-table td {
-        padding: 12px;
-        font-size: 1em;
-        color: #2c3e50;
-    }
-
-    /* Стили для первой колонки (Наименование) */
-    .equipment-table td:first-child {
-        font-weight: 500;
-    }
-
-    /* Стили для последней строки */
-    .equipment-table tbody tr:last-child {
-        border-bottom: none;
-    }
-
-    /* Адаптивные стили для мобильных устройств */
-    @media (max-width: 768px) {
-        .equipment-table {
-            width: 100%; /* Таблица занимает всю ширину на мобильных */
-            font-size: 0.9em;
-        }
-
-        .equipment-table th,
-        .equipment-table td {
-            padding: 10px;
-        }
-
-        .container {
-            margin-top: 70px; /* Уменьшаем отступ для навигационной панели */
-        }
-    }
-
-    @media (max-width: 480px) {
-        .equipment-table {
-            width: 100%; /* Таблица занимает всю ширину на очень маленьких экранах */
-            font-size: 0.8em;
-        }
-
-        .equipment-table th,
-        .equipment-table td {
-            padding: 8px;
-        }
-
-        .container {
-            margin-top: 60px; /* Еще меньше отступ для навигационной панели */
-        }
-    }
-
-    /* Стили для заголовка страницы */
-    h1 {
-        color: #1e90ff; /* Синий цвет заголовка */
-        text-align: center;
-        margin-bottom: 20px;
-        font-size: 2.5em;
-        font-weight: 700;
-    }
-
-    /* Стили для подзаголовков (Почасовая/Посуточная оплата) */
-    h2 {
-        color: #1e90ff;
-        text-align: center;
-        margin-top: 40px;
-        margin-bottom: 10px; /* Уменьшенный отступ снизу, чтобы подзаголовок был ближе к таблице */
-        font-size: 2em;
+    .price-table th {
         font-weight: 600;
     }
 
-    /* Адаптивные стили для заголовков */
-    @media (max-width: 768px) {
-        h1 {
-            font-size: 2em;
-        }
-
-        h2 {
-            font-size: 1.6em;
-        }
+    .price-table tbody tr:hover {
+        background-color: #f8f9fa;
     }
 
-    @media (max-width: 480px) {
-        h1 {
-            font-size: 1.8em;
+    h1 {
+        color: #1e90ff;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 2.2rem;
+    }
+
+    .no-items {
+        text-align: center;
+        color: #6c757d;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        font-size: 15px;
+        min-width: 120px;
+        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-add {
+        background-color: #28a745;
+        color: white;
+        font-size: 16px;
+        min-width: 200px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .btn-edit {
+        background-color: #4CAF50;
+        color: white;
+        min-width: 100px;
+    }
+
+    .btn-delete {
+        background-color: #f44336;
+        color: white;
+        min-width: 100px;
+    }
+
+    .btn-cancel {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-save {
+        background-color: #1e90ff;
+        color: white;
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .action-cell {
+        display: flex;
+        gap: 10px;
+    }
+
+    /* Модальные окна */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 30px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+        animation: slideDown 0.3s;
+    }
+
+    @keyframes slideDown {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .modal-title {
+        font-size: 1.5em;
+        color: #1e90ff;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .close:hover {
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 15px;
+        transition: border-color 0.3s;
+    }
+
+    .form-group textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-group input:focus, .form-group textarea:focus {
+        border-color: #1e90ff;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.1);
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 15px;
+            margin-top: 70px;
         }
 
-        h2 {
-            font-size: 1.4em;
+        .price-table th, .price-table td {
+            padding: 10px;
+            font-size: 0.9em;
+        }
+
+        .action-cell {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn {
+            min-width: 100%;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .btn-add {
+            min-width: 100%;
+        }
+
+        .modal-content {
+            margin: 15% auto;
+            width: 95%;
+            padding: 20px;
         }
     }
 </style>
 
 <div class="container">
-    <h1>Цены на прокат снаряжения</h1>
+    <h1>Наши цены</h1>
 
-    <!-- Таблица для почасового снаряжения -->
-    <h2>Почасовая оплата</h2>
-    {% if equipment_hourly %}
-        <table class="equipment-table">
-            <thead>
-                <tr>
-                    <th>Наименование</th>
-                    <th>Цена за час (руб.)</th>
-                    <th>Описание</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in equipment_hourly %}
-                    <tr>
-                        <td>{{ item.name }}</td>
-                        <td>{{ item.price_per_hour }}</td>
-                        <td>{{ item.description }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>Нет доступного снаряжения с почасовой оплатой.</p>
+    {% if user.is_staff or user.is_superuser %}
+    <div class="action-buttons">
+        <button class="btn btn-add" onclick="openAddModal()">
+            <i class="fas fa-plus-circle" style="margin-right: 8px;"></i> Добавить цену
+        </button>
+    </div>
     {% endif %}
 
-    <!-- Таблица для посуточного снаряжения -->
-    <h2>Посуточная оплата</h2>
-    {% if equipment_daily %}
-        <table class="equipment-table">
+    {% if prices %}
+        <table class="price-table">
             <thead>
                 <tr>
-                    <th>Наименование</th>
-                    <th>Цена за день (руб.)</th>
-                    <th>Описание</th>
+                    <th>Название</th>
+                    <th>Цена за час</th>
+                    <th>Цена за день</th>
+                    {% if user.is_staff or user.is_superuser %}
+                    <th>Действия</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
-                {% for item in equipment_daily %}
-                    <tr>
-                        <td>{{ item.name }}</td>
-                        <td>{{ item.price_per_day }}</td>
-                        <td>{{ item.description }}</td>
+                {% for price in prices %}
+                    <tr data-price-id="{{ price.id }}">
+                        <td>{{ price.name }}</td>
+                        <td>{{ price.price_per_hour|default:"-" }} руб.</td>
+                        <td>{{ price.price_per_day|default:"-" }} руб.</td>
+                        {% if user.is_staff or user.is_superuser %}
+                        <td class="action-cell">
+                            <button class="btn btn-edit" onclick="openEditModal({{ price.id }})">
+                                <i class="fas fa-edit"></i> Изменить
+                            </button>
+                            <button class="btn btn-delete" onclick="confirmDelete({{ price.id }})">
+                                <i class="fas fa-trash-alt"></i> Удалить
+                            </button>
+                        </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <p>Нет доступного снаряжения с посуточной оплатой.</p>
+        <div class="no-items">
+            Нет доступных цен.
+            {% if user.is_staff or user.is_superuser %}
+            <a href="#" onclick="openAddModal()">Добавить первую цену</a>
+            {% endif %}
+        </div>
     {% endif %}
 </div>
+
+<!-- Модальное окно для добавления/редактирования -->
+<div id="priceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Добавить цену</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <form id="priceForm">
+            {% csrf_token %}
+            <input type="hidden" id="priceId" name="price_id">
+            <div class="form-group">
+                <label for="name">Название:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="price_per_hour">Цена за час (руб.):</label>
+                <input type="number" id="price_per_hour" name="price_per_hour" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="price_per_day">Цена за день (руб.):</label>
+                <input type="number" id="price_per_day" name="price_per_day" step="0.01" min="0" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" onclick="closeModal()">Отмена</button>
+                <button type="submit" class="btn btn-save">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+<script>
+    // Открытие модального окна для редактирования
+    function openEditModal(priceId) {
+        const modal = document.getElementById('priceModal');
+        const title = document.getElementById('modalTitle');
+
+        // Находим строку таблицы с нужными данными
+        const row = document.querySelector(`tr[data-price-id="${priceId}"]`);
+        if (row) {
+            title.textContent = 'Редактировать цену';
+            document.getElementById('priceId').value = priceId;
+            document.getElementById('name').value = row.cells[0].textContent.trim();
+
+            // Обрабатываем цену за час
+            const hourPrice = row.cells[1].textContent.replace(' руб.', '').trim();
+            document.getElementById('price_per_hour').value = hourPrice === '-' ? '' : parseFloat(hourPrice);
+
+            // Обрабатываем цену за день
+            const dayPrice = row.cells[2].textContent.replace(' руб.', '').trim();
+            document.getElementById('price_per_day').value = dayPrice === '-' ? '' : parseFloat(dayPrice);
+        }
+
+        modal.style.display = 'block';
+    }
+
+    // Открытие модального окна для добавления
+    function openAddModal() {
+        const modal = document.getElementById('priceModal');
+        const title = document.getElementById('modalTitle');
+        const form = document.getElementById('priceForm');
+
+        title.textContent = 'Добавить цену';
+        form.reset();
+        document.getElementById('priceId').value = '';
+
+        modal.style.display = 'block';
+    }
+
+    // Закрытие модального окна
+    function closeModal() {
+        document.getElementById('priceModal').style.display = 'none';
+    }
+
+    // Обработка отправки формы
+    document.getElementById('priceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const priceId = formData.get('price_id');
+        const url = priceId ? `/prices/update/${priceId}/` : '/prices/create/';
+        const method = priceId ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: formData.get('name'),
+                price_per_hour: formData.get('price_per_hour'),
+                price_per_day: formData.get('price_per_day'),
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Network response was not ok');
+        })
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || 'Ошибка при сохранении');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при сохранении');
+        });
+    });
+
+    // Подтверждение удаления
+    function confirmDelete(priceId) {
+        if (confirm('Вы уверены, что хотите удалить эту запись?')) {
+            fetch(`/prices/delete/${priceId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Ошибка при удалении');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при удалении');
+            });
+        }
+    }
+
+    // Закрытие модального окна при клике вне его
+    window.onclick = function(event) {
+        const modal = document.getElementById('priceModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+</script>
 {% endblock %}
