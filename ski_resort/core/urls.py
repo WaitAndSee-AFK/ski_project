@@ -19,5 +19,7 @@ urlpatterns = [
     path('edit_booking/<int:booking_id>/', views.edit_booking, name='edit_booking'),
     path('book_service/<int:service_id>/', views.book_service, name='book_service'),
     path('book/equipment/<int:equipment_id>/', views.BookServiceView.as_view(), name='book_equipment'),
-
+    path('prices/create/', views.create_price, name='create_price'),
+    path('prices/update/<int:pk>/', views.update_price, name='update_price'),
+    path('prices/delete/<int:pk>/', views.delete_price, name='delete_price'),
 ]

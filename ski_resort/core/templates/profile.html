@@ -1,26 +1,203 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-
-    body {
+       body {
         font-family: 'Roboto', sans-serif;
-        background-color: #ffffff;
+        background-color: white;
         margin: 0;
         padding: 0;
+        color: #333;
     }
 
     .profile-container {
         max-width: 800px;
-        margin: 40px auto;
+        margin: 80px auto 40px;
         padding: 30px;
         background-color: white;
-        border-radius: 15px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-        margin-top: 80px;
     }
 
-    /* ... (остальные стили остаются без изменений) ... */
+    h1 {
+        font-size: 24px;
+        color: #1a73e8;
+        margin-bottom: 30px;
+        text-align: center; /* Добавлено выравнивание по центру */
+        border-bottom: none; /* Убрано подчеркивание */
+    }
+
+    h2 {
+        font-size: 20px;
+        color: #1a73e8;
+        margin: 30px 0 20px;
+    }
+
+    /* Остальные стили остаются без изменений */
+    .bookings-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .booking-item {
+        padding: 20px;
+        margin-bottom: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        background-color: #fafafa;
+    }
+
+    .booking-item strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 16px;
+    }
+
+    .dates {
+        color: #666;
+        font-size: 14px;
+        margin: 10px 0;
+    }
+
+    .price {
+        color: #1a73e8;
+        font-weight: 500;
+    }
+
+    .no-bookings {
+        padding: 20px;
+        text-align: center;
+        color: #888;
+        border: 1px dashed #ddd;
+        border-radius: 6px;
+    }
+
+    .booking-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .edit-booking, .cancel-booking {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .edit-booking {
+        background-color: #1a73e8;
+        color: white;
+    }
+
+    .cancel-booking {
+        background-color: #f1f1f1;
+        color: #d32f2f;
+        border: 1px solid #d32f2f;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 6px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .close {
+        color: #aaa;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .btn-cancel {
+        background-color: #f1f1f1;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .btn-confirm {
+        background-color: #4285f4;
+        color: white;
+        border: none;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .status {
+        font-size: 14px;
+        margin-top: 10px;
+    }
+
+    .status-active {
+        color: #388e3c;
+    }
+
+    .status-completed {
+        color: #1976d2;
+    }
+
+    .status-canceled {
+        color: #d32f2f;
+    }
+
+    @media (max-width: 600px) {
+        .profile-container {
+            padding: 20px;
+            margin: 60px auto 20px;
+        }
+
+        .booking-actions {
+            flex-direction: column;
+        }
+    }
 </style>
 
 {% if messages %}
@@ -34,11 +211,10 @@
 {% endif %}
 
 <div class="profile-container">
-    <!-- Проверка наличия имени -->
     {% if user.first_name %}
-        <h1>Ваш профиль, {{ user.first_name }}{% if user.last_name %} {{ user.last_name }}{% endif %}!</h1>
+        <h1>Ваш профиль, {{ user.first_name }}{% if user.last_name %} {{ user.last_name }}{% endif %}</h1>
     {% else %}
-        <h1>Ваш профиль, Дорогой пользователь!</h1>
+        <h1>Ваш профиль</h1>
     {% endif %}
 
     <h2>Ваши бронирования</h2>
@@ -49,15 +225,24 @@
                     {% if booking.service %}
                         <strong>{{ booking.service.name|default:"Неизвестная услуга" }}</strong>
                         {% if booking.service.price %}
-                            - {{ booking.service.price.price_per_hour }} руб./час
-                            ({{ booking.service.price.price_per_day }} руб./день)
+                            <span class="price">
+                                {% if booking.duration_type == 'hour' %}
+                                    {{ booking.service.price.price_per_hour }} руб./час
+                                {% else %}
+                                    {{ booking.service.price.price_per_day }} руб./день
+                                {% endif %}
+                            </span>
                         {% endif %}
                     {% elif booking.equipment %}
                         <strong>{{ booking.equipment.name|default:"Неизвестное оборудование" }}</strong>
-                        {% if booking.duration_type == 'hour' and booking.service.price %}
-                            - {{ booking.service.price.price_per_hour }} руб./час
-                        {% elif booking.duration_type == 'day' and booking.service.price %}
-                            - {{ booking.service.price.price_per_day }} руб./день
+                        {% if booking.equipment.price %}
+                            <span class="price">
+                                {% if booking.duration_type == 'hour' %}
+                                    {{ booking.equipment.price.price_per_hour }} руб./час
+                                {% else %}
+                                    {{ booking.equipment.price.price_per_day }} руб./день
+                                {% endif %}
+                            </span>
                         {% endif %}
                     {% else %}
                         <strong>Бронирование #{{ booking.id }}</strong>
@@ -69,14 +254,8 @@
                         ({{ booking.duration_type|default:"час" }})
                     </p>
 
-                    <p>Статус:
-                        <span style="color:
-                            {% if booking.status == 'active' %}#28a745
-                            {% elif booking.status == 'completed' %}#17a2b8
-                            {% elif booking.status == 'canceled' %}#dc3545
-                            {% else %}#6c757d{% endif %}">
-                            {{ booking.get_status_display }}
-                        </span>
+                    <p class="status status-{{ booking.status }}">
+                        Статус: {{ booking.get_status_display }}
                     </p>
 
                     {% if booking.status == 'active' %}
@@ -86,7 +265,7 @@
                             Редактировать
                         </button>
                         <button class="cancel-booking" onclick="cancelBooking({{ booking.id }})">
-                            Отменить бронирование
+                            Отменить
                         </button>
                     </div>
                     {% endif %}
@@ -103,7 +282,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2>Редактировать бронирование</h2>
-            <span class="close" onclick="closeEditModal()">×</span>
+            <span class="close" onclick="closeEditModal()">&times;</span>
         </div>
         <div class="modal-body">
             <form id="editForm">
@@ -114,7 +293,7 @@
                 <label for="editTime">Время бронирования:</label>
                 <input type="time" id="editTime" name="edit_time" required>
                 <label for="durationType">Тип бронирования:</label>
-                <select id="durationType" name="duration_type" class="form-control" required>
+                <select id="durationType" name="duration_type" required>
                     <option value="hour">Почасовое</option>
                     <option value="day">Посуточное</option>
                 </select>

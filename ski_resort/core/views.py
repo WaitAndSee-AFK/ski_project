@@ -1,36 +1,84 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, View
 from django.contrib.auth import login, authenticate
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
-from django import forms
-from core.models import Equipment, Service, Booking, Review, CustomUser
-from .forms import ReviewForm, BookingForm
 from datetime import datetime
+from core.models import Equipment, Service, Booking, Review, CustomUser
+from .forms import ReviewForm, BookingForm, CustomUserCreationForm  # Импортируем форму из forms.py
+from django.views.generic import CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from .models import Price, Service
 import json
 
 
-# форма для регистрации
-class CustomUserCreationForm(UserCreationForm):
-    phone_number = forms.CharField(max_length=15, required=True, label='Номер телефона')
-    first_name = forms.CharField(max_length=30, required=False, label='Имя')
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_price(request):
+    try:
+        data = json.loads(request.body)
+        price = Price.objects.create(
+            name=data['name'],
+            price_per_hour=data['price_per_hour'],
+            price_per_day=data['price_per_day']
+        )
 
-    class Meta:
-        model = CustomUser
-        fields = ('username', 'phone_number', 'first_name', 'password1', 'password2')
+        if data.get('service_id'):
+            service = Service.objects.get(id=data['service_id'])
+            service.price = price
+            service.description = data.get('description', '')
+            service.save()
 
-    def clean_phone_number(self):
-        phone_number = self.cleaned_data.get('phone_number')
-        if CustomUser.objects.filter(phone_number=phone_number).exists():
-            raise forms.ValidationError("Этот номер телефона уже зарегистрирован.")
-        return phone_number
+        return JsonResponse({'success': True, 'id': price.id})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+
+@csrf_exempt
+@require_http_methods(["PUT"])
+def update_price(request, pk):
+    try:
+        price = Price.objects.get(pk=pk)
+        data = json.loads(request.body)
+
+        price.name = data.get('name', price.name)
+        price.price_per_hour = data.get('price_per_hour', price.price_per_hour)
+        price.price_per_day = data.get('price_per_day', price.price_per_day)
+        price.save()
+
+        if data.get('service_id'):
+            service = Service.objects.get(id=data['service_id'])
+            service.description = data.get('description', '')
+            service.save()
+
+        return JsonResponse({'success': True})
+    except Price.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Price not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def delete_price(request, pk):
+    try:
+        price = Price.objects.get(pk=pk)
+        price.delete()
+        return JsonResponse({'success': True})
+    except Price.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Price not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 # отмена бронирования
 @login_required
@@ -74,7 +122,7 @@ def review_moderation(request):
     if request.user.is_staff:
         reviews = Review.objects.filter(approved=False)
         return render(request, 'review_moderation.html', {'reviews': reviews})
-    messages.warning(request, 'У вас нет прав для доступа к этой странице.')
+    messages.warning(request, 'У вас нет прав для доступа к этой страницы.')
     return redirect('review_list')
 
 
@@ -103,9 +151,11 @@ class ServicesView(View):
 # цены из таблицы почасовые и посуточные
 class PricingView(View):
     def get(self, request):
+        prices = Price.objects.all()  # Получаем все цены
         services = Service.objects.all()
         equipment = Equipment.objects.all()
         context = {
+            'prices': prices,  # Добавляем цены в контекст
             'services': services,
             'equipment': equipment,
         }
@@ -115,21 +165,22 @@ class PricingView(View):
 # регистрация нового пользователя
 class RegisterView(View):
     def get(self, request):
-        form = CustomUserCreationForm()
+        form = CustomUserCreationForm()  # Используем форму из forms.py
         return render(request, 'register.html', {'form': form})
 
     def post(self, request):
-        form = CustomUserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)  # Используем форму из forms.py
         if form.is_valid():
             user = form.save()
             phone_number = form.cleaned_data.get('phone_number')
-            user = authenticate(request, phone_number=phone_number, password=form.cleaned_data.get('password1'))
+            password = form.cleaned_data.get('password1')
+            user = authenticate(request, username=phone_number, password=password)  # Аутентификация по номеру телефона
             if user:
                 login(request, user)
                 messages.success(request, 'Регистрация прошла успешно!')
                 return redirect('profile')
             else:
-                messages.error(request, 'Ошибка аутентификации.')
+                messages.error(request, 'Ошибка аутентификации после регистрации.')
         else:
             messages.error(request, 'Исправьте ошибки в форме.')
         return render(request, 'register.html', {'form': form})

@@ -1,11 +1,10 @@
-# core/admin.py
 from django.contrib import admin
-from .models import CustomUser, Role, UserRole, Price, Service, Equipment, Review, Booking
+from .models import CustomUser, Role, Price, Service, Equipment, Review, Booking
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ['phone_number', 'username', 'first_name', 'last_name', 'is_staff']
-    list_filter = ['is_staff', 'is_superuser']
+    list_display = ['phone_number', 'username', 'first_name', 'last_name', 'role', 'is_staff']
+    list_filter = ['role', 'is_staff', 'is_superuser']
     search_fields = ['phone_number', 'username', 'first_name', 'last_name']
 
 @admin.register(Role)
@@ -13,16 +12,10 @@ class RoleAdmin(admin.ModelAdmin):
     list_display = ['role_name']
     search_fields = ['role_name']
 
-@admin.register(UserRole)
-class UserRoleAdmin(admin.ModelAdmin):
-    list_display = ['user', 'role']
-    list_filter = ['role']
-    search_fields = ['user__phone_number', 'role__role_name']
-
 @admin.register(Price)
 class PriceAdmin(admin.ModelAdmin):
-    list_display = ['description', 'price_per_hour', 'price_per_day']
-    search_fields = ['description']
+    list_display = ['name', 'price_per_hour', 'price_per_day']
+    search_fields = ['name']
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
@@ -50,7 +43,6 @@ class ReviewAdmin(admin.ModelAdmin):
 
     def approve_reviews(self, request, queryset):
         queryset.update(approved=True)
-
     approve_reviews.short_description = "Одобрить выбранные отзывы"
 
 @admin.register(Booking)
@@ -73,4 +65,3 @@ class BookingAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     date_hierarchy = 'start_date'
     ordering = ('-start_date',)
-
