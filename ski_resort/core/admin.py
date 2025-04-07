@@ -1,11 +1,11 @@
 from django.contrib import admin
-from .models import CustomUser, Role, Price, Service, Equipment, Review, Booking
+from .models import CustomUser, Role, Price, Service, Equipment, Review, Booking  # Убрали ServiceType
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ['phone_number', 'username', 'first_name', 'last_name', 'role', 'is_staff']
+    list_display = ['phone_number', 'first_name', 'last_name', 'role', 'is_staff']
     list_filter = ['role', 'is_staff', 'is_superuser']
-    search_fields = ['phone_number', 'username', 'first_name', 'last_name']
+    search_fields = ['phone_number', 'first_name', 'last_name']
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
@@ -24,7 +24,7 @@ class ServiceAdmin(admin.ModelAdmin):
     search_fields = ['name']
 
     def price_display(self, obj):
-        return f"{obj.price.price_per_hour} / {obj.price.price_per_day}"
+        return f"{obj.price.price_per_hour} / {obj.price.price_per_day}" if obj.price else "Нет цены"
     price_display.short_description = 'Цена (час/день)'
 
 @admin.register(Equipment)
