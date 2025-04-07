@@ -11,6 +11,8 @@ class CustomUserManager(BaseUserManager):
         if not phone_number:
             raise ValueError(_('Номер телефона должен быть указан'))
 
+        # Устанавливаем роль по умолчанию (Клиент, id=1)
+        extra_fields.setdefault('role_id', 1)  # Указываем id=1 для роли "Клиент"
         user = self.model(phone_number=phone_number, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -20,6 +22,8 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
+        # Для суперпользователя роль тоже по умолчанию "Клиент", но можно изменить вручную
+        extra_fields.setdefault('role_id', 1)
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError(_('Суперпользователь должен иметь is_staff=True.'))
@@ -48,8 +52,9 @@ class CustomUser(AbstractUser):
     role = models.ForeignKey(
         Role,
         on_delete=models.SET_NULL,  # Если роль удалена, поле станет NULL
-        null=True,  # Разрешаем NULL, чтобы не зависеть от существующих ролей
+        null=True,  # Разрешаем NULL
         blank=True,  # Необязательное поле в формах
+        default=1,  # По умолчанию роль "Клиент" (id=1)
         verbose_name=_("Роль")
     )
 
@@ -93,7 +98,7 @@ class Price(models.Model):
             raise ValidationError(_("Нельзя удалить цену, так как есть связанные услуги"))
         super().delete(*args, **kwargs)
 
-# Вид услуг (новая таблица)
+# Вид услуг
 class ServiceType(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name=_("Наименование"))
 
@@ -104,23 +109,19 @@ class ServiceType(models.Model):
         verbose_name = _("Вид услуг")
         verbose_name_plural = _("Виды услуг")
 
-# Услуга (без изменений)
+# Услуга
 class Service(models.Model):
-    SERVICE_TYPES = (
-        ('rental', _('Прокат')),
-        ('parking', _('Стоянка автомобиля')),
-    )
     name = models.CharField(max_length=100, verbose_name=_("Название"))
-    service_type = models.CharField(
-        max_length=20,
-        choices=SERVICE_TYPES,
-        default='rental',
-        verbose_name=_("Тип услуги")
+    service_type = models.ForeignKey(
+        ServiceType,
+        on_delete=models.PROTECT,  # Нельзя удалить вид услуги, если он используется
+        default=1,  # По умолчанию "Прокат снаряжения" (id=1)
+        verbose_name=_("Вид услуги")
     )
     price = models.ForeignKey(
         Price,
         on_delete=models.PROTECT,
-        null=True,  # Разрешаем NULL, чтобы не зависеть от существующих цен
+        null=True,  # Разрешаем NULL
         blank=True,  # Необязательное поле в формах
         verbose_name=_("Цена"),
         related_name='services'
@@ -128,7 +129,7 @@ class Service(models.Model):
     description = models.TextField(blank=True, verbose_name=_("Описание"))
 
     def __str__(self):
-        return f"{self.name} ({self.get_service_type_display()})"
+        return f"{self.name} ({self.service_type})"
 
     def clean(self):
         super().clean()

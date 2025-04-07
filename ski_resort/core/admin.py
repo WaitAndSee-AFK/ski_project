@@ -20,7 +20,7 @@ class PriceAdmin(admin.ModelAdmin):
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
     list_display = ['name', 'service_type', 'price_display']
-    list_filter = ['service_type']
+    list_filter = ['service_type']  # Фильтр теперь по ForeignKey
     search_fields = ['name']
 
     def price_display(self, obj):
