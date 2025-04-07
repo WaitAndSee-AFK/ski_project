@@ -22,4 +22,5 @@ urlpatterns = [
     path('prices/create/', views.create_price, name='create_price'),
     path('prices/update/<int:pk>/', views.update_price, name='update_price'),
     path('prices/delete/<int:pk>/', views.delete_price, name='delete_price'),
+    path('get_service/<int:service_id>/', views.get_service, name='get_service'),
 ]

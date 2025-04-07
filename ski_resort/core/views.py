@@ -21,6 +21,24 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Price, Service
 import json
 
+@login_required
+def get_service(request, service_id):
+    try:
+        service = get_object_or_404(Service, id=service_id)
+        # Предполагаем, что у Service есть связь с Price через ForeignKey
+        price = service.price
+        return JsonResponse({
+            'success': True,
+            'service': {
+                'name': service.name,
+                'service_type': service.service_type,
+                'description': service.description,
+                'price_per_hour': float(price.price_per_hour),
+                'price_per_day': float(price.price_per_day),
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @csrf_exempt
 @require_http_methods(["POST"])

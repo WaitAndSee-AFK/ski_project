@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser, Role, Price, Service, Equipment, Review, Booking
+from .models import CustomUser, Role, Price, Service, ServiceType, Equipment, Review, Booking
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
@@ -16,6 +16,15 @@ class RoleAdmin(admin.ModelAdmin):
 class PriceAdmin(admin.ModelAdmin):
     list_display = ['name', 'price_per_hour', 'price_per_day']
     search_fields = ['name']
+
+@admin.register(ServiceType)
+class ServiceTypeAdmin(admin.ModelAdmin):
+    list_display = ['name', 'get_name_display']
+    search_fields = ['name']
+
+    def get_name_display(self, obj):
+        return obj.get_name_display()
+    get_name_display.short_description = 'Название типа'
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
