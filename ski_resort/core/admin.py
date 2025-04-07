@@ -1,11 +1,11 @@
 from django.contrib import admin
-from .models import CustomUser, Role, Price, Service, ServiceType, Equipment, Review, Booking
+from .models import CustomUser, Role, Price, Service, ServiceType, Equipment, Review, Booking  # Добавили ServiceType
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ['phone_number', 'username', 'first_name', 'last_name', 'role', 'is_staff']
+    list_display = ['phone_number', 'first_name', 'last_name', 'role', 'is_staff']
     list_filter = ['role', 'is_staff', 'is_superuser']
-    search_fields = ['phone_number', 'username', 'first_name', 'last_name']
+    search_fields = ['phone_number', 'first_name', 'last_name']
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
@@ -17,15 +17,6 @@ class PriceAdmin(admin.ModelAdmin):
     list_display = ['name', 'price_per_hour', 'price_per_day']
     search_fields = ['name']
 
-@admin.register(ServiceType)
-class ServiceTypeAdmin(admin.ModelAdmin):
-    list_display = ['name', 'get_name_display']
-    search_fields = ['name']
-
-    def get_name_display(self, obj):
-        return obj.get_name_display()
-    get_name_display.short_description = 'Название типа'
-
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
     list_display = ['name', 'service_type', 'price_display']
@@ -33,8 +24,13 @@ class ServiceAdmin(admin.ModelAdmin):
     search_fields = ['name']
 
     def price_display(self, obj):
-        return f"{obj.price.price_per_hour} / {obj.price.price_per_day}"
+        return f"{obj.price.price_per_hour} / {obj.price.price_per_day}" if obj.price else "Нет цены"
     price_display.short_description = 'Цена (час/день)'
+
+@admin.register(ServiceType)  # Добавили регистрацию ServiceType
+class ServiceTypeAdmin(admin.ModelAdmin):
+    list_display = ['name']  # Отображаем поле name
+    search_fields = ['name']  # Поиск по имени
 
 @admin.register(Equipment)
 class EquipmentAdmin(admin.ModelAdmin):
