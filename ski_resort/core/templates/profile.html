@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
+{% load lookup_tags %}
 {% block content %}
 <style>
-       body {
+    body {
         font-family: 'Roboto', sans-serif;
         background-color: white;
         margin: 0;
@@ -20,8 +21,8 @@
         font-size: 24px;
         color: #1a73e8;
         margin-bottom: 30px;
-        text-align: center; /* Добавлено выравнивание по центру */
-        border-bottom: none; /* Убрано подчеркивание */
+        text-align: center;
+        border-bottom: none;
     }
 
     h2 {
@@ -30,7 +31,6 @@
         margin: 30px 0 20px;
     }
 
-    /* Остальные стили остаются без изменений */
     .bookings-list {
         list-style: none;
         padding: 0;
@@ -95,7 +95,6 @@
         border: 1px solid #d32f2f;
     }
 
-    /* Modal Styles */
     .modal {
         display: none;
         position: fixed;
@@ -222,31 +221,30 @@
         <ul class="bookings-list">
             {% for booking in bookings %}
                 <li class="booking-item">
-                    {% if booking.service %}
-                        <strong>{{ booking.service.name|default:"Неизвестная услуга" }}</strong>
-                        {% if booking.service.price %}
-                            <span class="price">
-                                {% if booking.duration_type == 'hour' %}
-                                    {{ booking.service.price.price_per_hour }} руб./час
-                                {% else %}
-                                    {{ booking.service.price.price_per_day }} руб./день
+                    {% with service=services|lookup:booking.service_id %}
+                        {% if service %}
+                            <strong>{{ service.name|default:"Неизвестная услуга" }}</strong>
+                            {% with price=prices|lookup:service.price_id %}
+                                {% if price %}
+                                    <span class="price">
+                                        {% if booking.duration_type == 'hour' %}
+                                            {{ price.price_per_hour }} руб./час
+                                        {% else %}
+                                            {{ price.price_per_day }} руб./день
+                                        {% endif %}
+                                    </span>
                                 {% endif %}
-                            </span>
-                        {% endif %}
-                    {% elif booking.equipment %}
-                        <strong>{{ booking.equipment.name|default:"Неизвестное оборудование" }}</strong>
-                        {% if booking.equipment.price %}
-                            <span class="price">
-                                {% if booking.duration_type == 'hour' %}
-                                    {{ booking.equipment.price.price_per_hour }} руб./час
+                            {% endwith %}
+                        {% else %}
+                            {% with equipment=equipment|lookup:booking.equipment_id %}
+                                {% if equipment %}
+                                    <strong>{{ equipment.name|default:"Неизвестное оборудование" }}</strong>
                                 {% else %}
-                                    {{ booking.equipment.price.price_per_day }} руб./день
+                                    <strong>Бронирование #{{ booking.id }}</strong>
                                 {% endif %}
-                            </span>
+                            {% endwith %}
                         {% endif %}
-                    {% else %}
-                        <strong>Бронирование #{{ booking.id }}</strong>
-                    {% endif %}
+                    {% endwith %}
 
                     <p class="dates">
                         С {{ booking.start_date|date:"d.m.Y H:i" }}
@@ -277,12 +275,11 @@
     {% endif %}
 </div>
 
-<!-- Модальное окно для редактирования -->
 <div id="editModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h2>Редактировать бронирование</h2>
-            <span class="close" onclick="closeEditModal()">&times;</span>
+            <span class="close" onclick="closeEditModal()">×</span>
         </div>
         <div class="modal-body">
             <form id="editForm">
@@ -394,9 +391,9 @@
         let endDate;
 
         if (durationType === 'hour') {
-            endDate = new Date(new Date(startDate).getTime() + 60 * 60 * 1000); // +1 час
+            endDate = new Date(new Date(startDate).getTime() + 60 * 60 * 1000);
         } else {
-            endDate = new Date(new Date(startDate).getTime() + 24 * 60 * 60 * 1000); // +1 день
+            endDate = new Date(new Date(startDate).getTime() + 24 * 60 * 60 * 1000);
         }
 
         endDate = new Date(endDate).toISOString();

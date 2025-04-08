@@ -7,31 +7,14 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
-from core.models import Equipment, Service, Booking, Review, CustomUser
-from .forms import ReviewForm, BookingForm, CustomUserCreationForm  # Импортируем форму из forms.py
-from django.views.generic import CreateView, UpdateView, DeleteView
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import UserPassesTestMixin
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from .models import Equipment, Service, Booking, Review, CustomUser, Price, ServiceType
 from .forms import ReviewForm, BookingForm, CustomUserCreationForm
-from django.contrib import messages
-from django.utils import timezone
-from datetime import datetime
-from django.contrib.auth import login, authenticate
-from django.views.generic import ListView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
-import json
+from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
+import json
+from datetime import datetime
 
 class CustomLoginView(LoginView):
     template_name = 'login.html'
@@ -39,17 +22,15 @@ class CustomLoginView(LoginView):
     def get_success_url(self):
         user = self.request.user
         if user.is_superuser or user.is_staff:
-            return reverse_lazy('bookings_admin')  # Суперюзеры и сотрудники -> главная страница
-        return reverse_lazy('profile')  # Обычные пользователи -> профиль
+            return reverse_lazy('bookings_admin')
+        return reverse_lazy('profile')
 
-# Список услуг
 def services_view(request):
     services = Service.objects.all()
-    service_types = ServiceType.objects.all()  # Передаем все типы услуг для модальных окон
-    bookings = Booking.objects.filter(user=request.user) if request.user.is_authenticated else None
+    service_types = ServiceType.objects.all()
+    bookings = Booking.objects.filter(user_id=request.user.id) if request.user.is_authenticated else None
     return render(request, 'services.html', {'services': services, 'service_types': service_types, 'bookings': bookings})
 
-# Получение данных об услуге для редактирования
 @login_required
 def get_service(request, service_id):
     if not (request.user.is_staff or request.user.is_superuser):
@@ -57,12 +38,12 @@ def get_service(request, service_id):
 
     try:
         service = get_object_or_404(Service, id=service_id)
-        price = service.price
+        price = Price.objects.get(id=service.price_id) if service.price_id else None
         return JsonResponse({
             'success': True,
             'service': {
                 'name': service.name,
-                'service_type_id': service.service_type_id,  # Передаем ID типа услуги
+                'service_type_id': service.service_type_id,
                 'description': service.description,
                 'price_per_hour': str(price.price_per_hour) if price else '0.00',
                 'price_per_day': str(price.price_per_day) if price else '0.00'
@@ -71,7 +52,6 @@ def get_service(request, service_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-# Добавление новой услуги
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -98,13 +78,12 @@ def add_service(request):
             name=name,
             service_type_id=service_type_id,
             description=description,
-            price=price
+            price_id=price.id
         )
         return JsonResponse({'success': True, 'id': service.id})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# Редактирование услуги
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -126,24 +105,24 @@ def edit_service(request, service_id):
         service.name = name
         service.service_type_id = service_type_id
         service.description = description
-        if service.price:
-            service.price.price_per_hour = price_per_hour
-            service.price.price_per_day = price_per_day
-            service.price.save()
+        if service.price_id:
+            price = Price.objects.get(id=service.price_id)
+            price.price_per_hour = price_per_hour
+            price.price_per_day = price_per_day
+            price.save()
         else:
             price = Price.objects.create(
                 name=f"Цена для {name}",
                 price_per_hour=price_per_hour,
                 price_per_day=price_per_day
             )
-            service.price = price
+            service.price_id = price.id
         service.save()
 
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# Удаление услуги
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -153,10 +132,8 @@ def delete_service(request, service_id):
 
     try:
         service = get_object_or_404(Service, id=service_id)
-        # Проверка на связанные бронирования
-        if service.bookings.exists():
+        if Booking.objects.filter(service_id=service.id).exists():
             return JsonResponse({'success': False, 'error': 'Нельзя удалить услугу с активными бронированиями'}, status=400)
-        # Удаляем только саму услугу, не трогаем Price
         service.delete()
         return JsonResponse({'success': True})
     except Service.DoesNotExist:
@@ -164,12 +141,11 @@ def delete_service(request, service_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-# Отмена бронирования
 @login_required
 def cancel_booking(request, booking_id):
     if request.method == 'POST':
         try:
-            booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+            booking = get_object_or_404(Booking, id=booking_id, user_id=request.user.id)
             booking.status = 'canceled'
             booking.save()
             return JsonResponse({'success': True})
@@ -177,19 +153,17 @@ def cancel_booking(request, booking_id):
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Недопустимый метод запроса'})
 
-# Список одобренных отзывов
 def review_list(request):
     reviews = Review.objects.filter(approved=True).order_by('-created_at')
     return render(request, 'review_list.html', {'reviews': reviews})
 
-# Создание нового отзыва
 @login_required
 def create_review(request):
     if request.method == 'POST':
         form = ReviewForm(request.POST)
         if form.is_valid():
             review = form.save(commit=False)
-            review.user = request.user
+            review.user_id = request.user.id
             review.save()
             messages.success(request, 'Ваш отзыв успешно отправлен на модерацию.')
             return redirect('review_list')
@@ -197,7 +171,6 @@ def create_review(request):
         form = ReviewForm()
     return render(request, 'review_form.html', {'form': form})
 
-# Модерация отзывов
 @login_required
 def review_moderation(request):
     if request.user.is_staff:
@@ -206,7 +179,6 @@ def review_moderation(request):
     messages.warning(request, 'У вас нет прав для доступа к этой странице.')
     return redirect('review_list')
 
-# Главная страница
 class HomeView(View):
     def get(self, request):
         complex_info = {
@@ -216,7 +188,6 @@ class HomeView(View):
         }
         return render(request, 'home.html', {'complex_info': complex_info})
 
-# Цены из таблицы почасовые и посуточные
 class PricingView(View):
     def get(self, request):
         prices = Price.objects.all()
@@ -229,7 +200,6 @@ class PricingView(View):
         }
         return render(request, 'pricing.html', context)
 
-# Регистрация нового пользователя
 class RegisterView(View):
     def get(self, request):
         form = CustomUserCreationForm()
@@ -245,6 +215,8 @@ class RegisterView(View):
             if user:
                 login(request, user)
                 messages.success(request, 'Регистрация прошла успешно!')
+                if user.is_superuser or user.is_staff:
+                    return redirect('bookings_admin')
                 return redirect('profile')
             else:
                 messages.error(request, 'Ошибка аутентификации после регистрации.')
@@ -252,7 +224,6 @@ class RegisterView(View):
             messages.error(request, 'Исправьте ошибки в форме.')
         return render(request, 'register.html', {'form': form})
 
-# Профиль пользователя с активными бронированиями
 class ProfileView(LoginRequiredMixin, ListView):
     model = Booking
     template_name = 'profile.html'
@@ -260,11 +231,16 @@ class ProfileView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Booking.objects.filter(
-            user=self.request.user,
+            user_id=self.request.user.id,
             status='active'
-        ).select_related('service', 'equipment')
+        )
 
-# Создание бронирования услуги
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['services'] = {s.id: s for s in Service.objects.all()}
+        context['equipment'] = {e.id: e for e in Equipment.objects.all()}
+        return context
+
 @login_required
 @csrf_exempt
 def book_service(request, service_id):
@@ -277,9 +253,8 @@ def book_service(request, service_id):
             end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
             duration_type = data.get('duration_type', 'hour')
 
-            # Проверка на пересекающиеся бронирования
             conflicting_bookings = Booking.objects.filter(
-                service=service,
+                service_id=service.id,
                 status='active',
                 start_date__lt=end_date,
                 end_date__gt=start_date
@@ -287,14 +262,17 @@ def book_service(request, service_id):
             if conflicting_bookings.exists():
                 return JsonResponse({'success': False, 'error': 'Выбранное время уже занято'})
 
+            price = Price.objects.get(id=service.price_id) if service.price_id else None
+            total_cost = price.price_per_hour if duration_type == 'hour' and price else price.price_per_day if price else 0
+
             booking = Booking.objects.create(
-                user=request.user,
-                service=service,
+                user_id=request.user.id,
+                service_id=service.id,
                 start_date=start_date,
                 end_date=end_date,
                 duration_type=duration_type,
                 status='active',
-                total_cost=service.calculate_cost() if service.price else 0
+                total_cost=total_cost
             )
             return JsonResponse({
                 'success': True,
@@ -309,7 +287,6 @@ def book_service(request, service_id):
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
 
-# Создание бронирования через форму
 class BookServiceView(LoginRequiredMixin, View):
     def get(self, request):
         form = BookingForm()
@@ -334,7 +311,7 @@ class BookServiceView(LoginRequiredMixin, View):
                 form = BookingForm(request.POST)
                 if form.is_valid():
                     booking = form.save(commit=False)
-                    booking.user = request.user
+                    booking.user_id = request.user.id
                     booking.status = 'active'
                     booking.save()
                     messages.success(request, 'Бронирование успешно создано!')
@@ -357,20 +334,24 @@ class BookServiceView(LoginRequiredMixin, View):
                 start_date__lt=end_date,
                 end_date__gt=start_date
             ).filter(
-                service=item if booking_type == 'service' else None,
-                equipment=item if booking_type == 'equipment' else None
+                service_id=item.id if booking_type == 'service' else None,
+                equipment_id=item.id if booking_type == 'equipment' else None
             )
             if conflicting_bookings.exists():
                 raise ValueError("Выбранное время уже занято")
 
+            price = Price.objects.get(id=item.price_id) if (booking_type == 'service' and item.price_id) else None
+            total_cost = price.price_per_hour if duration_type == 'hour' and price else price.price_per_day if price else 0
+
             booking = Booking.objects.create(
-                user=request.user,
-                service=item if booking_type == 'service' else None,
-                equipment=item if booking_type == 'equipment' else None,
+                user_id=request.user.id,
+                service_id=item.id if booking_type == 'service' else None,
+                equipment_id=item.id if booking_type == 'equipment' else None,
                 start_date=start_date,
                 end_date=end_date,
                 duration_type=duration_type,
-                status='active'
+                status='active',
+                total_cost=total_cost
             )
 
             if request.headers.get('Content-Type') == 'application/json':
@@ -391,12 +372,11 @@ class BookServiceView(LoginRequiredMixin, View):
 
         return redirect('profile')
 
-# Редактирование бронирования пользователем
 @login_required
 @require_http_methods(["POST"])
 def edit_booking(request, booking_id):
     try:
-        booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+        booking = get_object_or_404(Booking, id=booking_id, user_id=request.user.id)
         data = json.loads(request.body)
         start_date_str = data.get('start_date')
         end_date_str = data.get('end_date')
@@ -408,7 +388,7 @@ def edit_booking(request, booking_id):
         end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
 
         conflicting_bookings = Booking.objects.filter(
-            service=booking.service,
+            service_id=booking.service_id,
             status='active',
             start_date__lt=end_date,
             end_date__gt=start_date
@@ -426,23 +406,26 @@ def edit_booking(request, booking_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
-# Список всех бронирований для администратора
 class AdminBookingsView(LoginRequiredMixin, ListView):
     model = Booking
     template_name = 'admin_bookings.html'
     context_object_name = 'bookings'
 
     def get_queryset(self):
-        return Booking.objects.all().select_related('user', 'service', 'equipment')
+        return Booking.objects.all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['services'] = {s.id: s for s in Service.objects.all()}
+        context['equipment'] = {e.id: e for e in Equipment.objects.all()}
+        context['users'] = {u.id: u for u in CustomUser.objects.all()}
+        return context
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_staff:
             messages.warning(request, 'Доступ запрещен')
             return redirect('home')
         return super().get(request, *args, **kwargs)
-
-# Удалены неиспользуемые функции
-# create_price, update_price, delete_price заменены на add_service, edit_service, delete_service
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -454,17 +437,14 @@ def create_price(request):
             price_per_hour=data['price_per_hour'],
             price_per_day=data['price_per_day']
         )
-
         if data.get('service_id'):
             service = Service.objects.get(id=data['service_id'])
-            service.price = price
+            service.price_id = price.id
             service.description = data.get('description', '')
             service.save()
-
         return JsonResponse({'success': True, 'id': price.id})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 
 @csrf_exempt
 @require_http_methods(["PUT"])
@@ -472,23 +452,19 @@ def update_price(request, pk):
     try:
         price = Price.objects.get(pk=pk)
         data = json.loads(request.body)
-
         price.name = data.get('name', price.name)
         price.price_per_hour = data.get('price_per_hour', price.price_per_hour)
         price.price_per_day = data.get('price_per_day', price.price_per_day)
         price.save()
-
         if data.get('service_id'):
             service = Service.objects.get(id=data['service_id'])
             service.description = data.get('description', '')
             service.save()
-
         return JsonResponse({'success': True})
     except Price.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Price not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -501,4 +477,3 @@ def delete_price(request, pk):
         return JsonResponse({'success': False, 'error': 'Price not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
