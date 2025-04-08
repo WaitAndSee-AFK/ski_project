@@ -70,7 +70,7 @@ class CustomUser(AbstractUser):
         verbose_name = _("Пользователь")
         verbose_name_plural = _("Пользователи")
 
-# Price list
+# Цена
 class Price(models.Model):
     name = models.CharField(max_length=100, verbose_name=_("Название"))
     price_per_hour = models.DecimalField(

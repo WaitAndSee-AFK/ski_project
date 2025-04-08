@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
-    /* Общие стили остаются без изменений */
+    /* Стили остаются без изменений */
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
@@ -90,7 +90,6 @@
         transform: translateY(-2px);
     }
 
-    /* Стили для кнопок администрирования */
     .admin-actions {
         position: absolute;
         top: 20px;
@@ -120,13 +119,20 @@
         background-color: #138496;
     }
 
-    .btn-delete {
-        background-color: #dc3545;
+    /* Стили кнопки удаления как в админ-панели */
+    .delete-btn {
+        background-color: #d9534f;
         color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: background-color 0.3s ease;
     }
 
-    .btn-delete:hover {
-        background-color: #c82333;
+    .delete-btn:hover {
+        background-color: #c9302c;
     }
 
     .btn-add-service {
@@ -146,7 +152,6 @@
         transform: translateY(-2px);
     }
 
-    /* Модальные окна */
     .modal {
         display: none;
         position: fixed;
@@ -345,13 +350,14 @@
                     <button class="btn-admin btn-edit" onclick="openEditServiceModal('{{ service.id }}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-admin btn-delete" onclick="confirmDeleteService('{{ service.id }}')">
+                    <!-- Кнопка удаления как в админ-панели -->
+                    <button class="delete-btn" onclick="confirmDelete('{{ service.id }}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
                 {% endif %}
 
-                <h3>{{ service.name }} ({{ service.get_service_type_display }})</h3>
+                <h3>{{ service.name }} ({{ service.service_type.name }})</h3>
                 <p>{{ service.description }}</p>
                 <div class="price-container">
                     <div class="price">Цена: {{ service.price.price_per_hour }} руб./час, {{ service.price.price_per_day }} руб./день</div>
@@ -410,8 +416,9 @@
                 <label for="serviceType">Тип услуги:</label>
                 <select id="serviceType" name="service_type" required>
                     <option value="" disabled selected>Выберите тип</option>
-                    <option value="rental">Прокат</option>
-                    <option value="parking">Стоянка автомобиля</option>
+                    {% for service_type in service_types %}
+                        <option value="{{ service_type.id }}">{{ service_type.name }}</option>
+                    {% endfor %}
                 </select>
                 <label for="serviceDescription">Описание:</label>
                 <textarea id="serviceDescription" name="description" rows="3"></textarea>
@@ -443,8 +450,9 @@
                 <input type="text" id="editServiceName" name="name" required>
                 <label for="editServiceType">Тип услуги:</label>
                 <select id="editServiceType" name="service_type" required>
-                    <option value="rental">Прокат</option>
-                    <option value="parking">Стоянка автомобиля</option>
+                    {% for service_type in service_types %}
+                        <option value="{{ service_type.id }}">{{ service_type.name }}</option>
+                    {% endfor %}
                 </select>
                 <label for="editServiceDescription">Описание:</label>
                 <textarea id="editServiceDescription" name="description" rows="3"></textarea>
@@ -479,7 +487,7 @@
         return cookieValue;
     }
 
-    const csrftoken = getCookie('csrftoken');
+    const csrftoken = getCookie('csrftoken') || '{{ csrf_token }}';
 
     // Функции для бронирования
     function openBookingModal(serviceId) {
@@ -571,7 +579,7 @@
         .then(data => {
             if (data.success) {
                 document.getElementById('editServiceName').value = data.service.name;
-                document.getElementById('editServiceType').value = data.service.service_type;
+                document.getElementById('editServiceType').value = data.service.service_type_id;
                 document.getElementById('editServiceDescription').value = data.service.description || '';
                 document.getElementById('editPricePerHour').value = data.service.price_per_hour;
                 document.getElementById('editPricePerDay').value = data.service.price_per_day;
@@ -591,7 +599,7 @@
         document.getElementById('editServiceModal').style.display = 'none';
     }
 
-    function confirmDeleteService(serviceId) {
+    function confirmDelete(serviceId) {
         if (confirm('Вы уверены, что хотите удалить эту услугу?')) {
             fetch(`/delete_service/${serviceId}/`, {
                 method: 'POST',
@@ -599,19 +607,27 @@
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include'
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `Ошибка ${response.status}: ${response.statusText}`);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     alert('Услуга успешно удалена!');
                     location.reload();
                 } else {
-                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                    alert(data.error || 'Ошибка при удалении');
                 }
             })
             .catch(error => {
                 console.error('Ошибка:', error);
-                alert('Произошла ошибка при удалении услуги.');
+                alert(`Произошла ошибка при удалении услуги: ${error.message}`);
             });
         }
     }
