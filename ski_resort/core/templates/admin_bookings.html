@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load lookup_tags %}
 {% block content %}
 <style>
     body {
@@ -93,7 +94,6 @@
     }
 </style>
 
-<!-- Основной контент -->
 <div class="booking-container">
     <h1>Все бронирования</h1>
     {% if bookings %}
@@ -101,25 +101,34 @@
             <option value="">Выберите бронирование</option>
             {% for booking in bookings %}
                 <option value="{{ booking.id }}">
-                    {{ booking.user.first_name }} {{ booking.user.last_name }} - {{ booking.service.name|default:"Без услуги" }}
+                    {% with user=users|lookup:booking.user_id %}
+                        {{ user.first_name|default:"—" }} {{ user.last_name|default:"—" }} -
+                    {% endwith %}
+                    {% with service=services|lookup:booking.service_id %}
+                        {{ service.name|default:"Без услуги" }}
+                    {% endwith %}
                 </option>
             {% endfor %}
         </select>
 
         {% for booking in bookings %}
             <div id="booking-{{ booking.id }}" class="booking-details">
-                <p><strong>Имя и фамилия:</strong> {{ booking.user.first_name }} {{ booking.user.last_name }}</p>
-                <p><strong>Услуга:</strong> {{ booking.service.name|default:"—" }}</p>
-                <p><strong>Снаряжение:</strong> {{ booking.equipment.name|default:"—" }}</p>
+                {% with user=users|lookup:booking.user_id %}
+                    <p><strong>Имя и фамилия:</strong> {{ user.first_name|default:"—" }} {{ user.last_name|default:"—" }}</p>
+                {% endwith %}
+                {% with service=services|lookup:booking.service_id %}
+                    <p><strong>Услуга:</strong> {{ service.name|default:"—" }}</p>
+                {% endwith %}
+                {% with equipment=equipment|lookup:booking.equipment_id %}
+                    <p><strong>Снаряжение:</strong> {{ equipment.name|default:"—" }}</p>
+                {% endwith %}
                 <p><strong>Дата начала:</strong> {{ booking.start_date }}</p>
                 <p><strong>Дата окончания:</strong> {{ booking.end_date }}</p>
-                <p><strong>Статус:</strong> {% if booking.is_active %}Активно{% else %}Завершено{% endif %}</p>
+                <p><strong>Статус:</strong> {{ booking.get_status_display }}</p>
 
-                <!-- Кнопки управления -->
                 <button class="btn btn-edit" onclick="showEditForm('{{ booking.id }}')">Изменить</button>
                 <button class="btn btn-cancel" onclick="cancelBooking('{{ booking.id }}')">Отменить</button>
 
-                <!-- Форма редактирования -->
                 <form id="edit-form-{{ booking.id }}" class="edit-form" method="POST" action="{% url 'edit_booking' booking.id %}">
                     {% csrf_token %}
                     <input type="datetime-local" name="start_date" value="{{ booking.start_date|date:'Y-m-d\TH:i' }}" required>
@@ -139,12 +148,10 @@
         var bookingId = select.value;
         var allDetails = document.querySelectorAll('.booking-details');
 
-        // Скрываем все детали бронирований
         allDetails.forEach(function(detail) {
             detail.classList.remove('active');
         });
 
-        // Показываем выбранное бронирование, если ID не пустой
         if (bookingId) {
             var selectedDetail = document.getElementById('booking-' + bookingId);
             if (selectedDetail) {
@@ -174,7 +181,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.reload(); // Обновляем страницу при успехе
+                    window.location.reload();
                 } else {
                     alert('Ошибка: ' + data.error);
                 }
