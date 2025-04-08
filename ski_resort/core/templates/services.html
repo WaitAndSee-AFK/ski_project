@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
-    /* Общие стили */
+    /* Стили остаются без изменений */
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
@@ -90,7 +90,6 @@
         transform: translateY(-2px);
     }
 
-    /* Стили для кнопок администрирования */
     .admin-actions {
         position: absolute;
         top: 20px;
@@ -120,13 +119,20 @@
         background-color: #138496;
     }
 
-    .btn-delete {
-        background-color: #dc3545;
+    /* Стили кнопки удаления как в админ-панели */
+    .delete-btn {
+        background-color: #d9534f;
         color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: background-color 0.3s ease;
     }
 
-    .btn-delete:hover {
-        background-color: #c82333;
+    .delete-btn:hover {
+        background-color: #c9302c;
     }
 
     .btn-add-service {
@@ -146,7 +152,6 @@
         transform: translateY(-2px);
     }
 
-    /* Модальные окна */
     .modal {
         display: none;
         position: fixed;
@@ -345,18 +350,19 @@
                     <button class="btn-admin btn-edit" onclick="openEditServiceModal('{{ service.id }}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-admin btn-delete" onclick="confirmDeleteService('{{ service.id }}')">
+                    <!-- Кнопка удаления как в админ-панели -->
+                    <button class="delete-btn" onclick="confirmDelete('{{ service.id }}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
                 {% endif %}
 
-                <h3>{{ service.name }} ({{ service.get_service_type_display }})</h3>
+                <h3>{{ service.name }} ({{ service.service_type.name }})</h3>
                 <p>{{ service.description }}</p>
                 <div class="price-container">
                     <div class="price">Цена: {{ service.price.price_per_hour }} руб./час, {{ service.price.price_per_day }} руб./день</div>
                     {% if user.is_authenticated %}
-                        <button type="button" class="btn-booking" onclick="openModal('{{ service.id }}')">
+                        <button type="button" class="btn-booking" onclick="openBookingModal('{{ service.id }}')">
                             Забронировать
                         </button>
                     {% endif %}
@@ -371,7 +377,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2>Бронирование услуги</h2>
-            <span class="close" onclick="closeModal()">×</span>
+            <span class="close" onclick="closeBookingModal()">×</span>
         </div>
         <div class="modal-body">
             <form id="bookingForm">
@@ -389,7 +395,7 @@
             </form>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-cancel" onclick="closeModal()">Отмена</button>
+            <button type="button" class="btn btn-cancel" onclick="closeBookingModal()">Отмена</button>
             <button type="button" class="btn btn-confirm" onclick="submitBooking()">Подтвердить</button>
         </div>
     </div>
@@ -407,21 +413,17 @@
                 {% csrf_token %}
                 <label for="serviceName">Название услуги:</label>
                 <input type="text" id="serviceName" name="name" required>
-
                 <label for="serviceType">Тип услуги:</label>
                 <select id="serviceType" name="service_type" required>
-                    <option value="ski">Горные лыжи</option>
-                    <option value="snowboard">Сноуборд</option>
-                    <option value="equipment">Оборудование</option>
-                    <option value="other">Другое</option>
+                    <option value="" disabled selected>Выберите тип</option>
+                    {% for service_type in service_types %}
+                        <option value="{{ service_type.id }}">{{ service_type.name }}</option>
+                    {% endfor %}
                 </select>
-
                 <label for="serviceDescription">Описание:</label>
                 <textarea id="serviceDescription" name="description" rows="3"></textarea>
-
                 <label for="pricePerHour">Цена за час (руб.):</label>
                 <input type="number" id="pricePerHour" name="price_per_hour" step="0.01" min="0" required>
-
                 <label for="pricePerDay">Цена за день (руб.):</label>
                 <input type="number" id="pricePerDay" name="price_per_day" step="0.01" min="0" required>
             </form>
@@ -446,21 +448,16 @@
                 <input type="hidden" id="editServiceId" name="service_id">
                 <label for="editServiceName">Название услуги:</label>
                 <input type="text" id="editServiceName" name="name" required>
-
                 <label for="editServiceType">Тип услуги:</label>
                 <select id="editServiceType" name="service_type" required>
-                    <option value="ski">Горные лыжи</option>
-                    <option value="snowboard">Сноуборд</option>
-                    <option value="equipment">Оборудование</option>
-                    <option value="other">Другое</option>
+                    {% for service_type in service_types %}
+                        <option value="{{ service_type.id }}">{{ service_type.name }}</option>
+                    {% endfor %}
                 </select>
-
                 <label for="editServiceDescription">Описание:</label>
                 <textarea id="editServiceDescription" name="description" rows="3"></textarea>
-
                 <label for="editPricePerHour">Цена за час (руб.):</label>
                 <input type="number" id="editPricePerHour" name="price_per_hour" step="0.01" min="0" required>
-
                 <label for="editPricePerDay">Цена за день (руб.):</label>
                 <input type="number" id="editPricePerDay" name="price_per_day" step="0.01" min="0" required>
             </form>
@@ -474,17 +471,7 @@
 
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 <script>
-    // Функции для бронирования
-    function openModal(serviceId) {
-        document.getElementById('serviceId').value = serviceId;
-        document.getElementById('bookingModal').style.display = 'block';
-    }
-
-    function closeModal() {
-        document.getElementById('bookingModal').style.display = 'none';
-        document.getElementById('bookingForm').reset();
-    }
-
+    // Получение CSRF-токена
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -500,7 +487,18 @@
         return cookieValue;
     }
 
-    const csrftoken = getCookie('csrftoken');
+    const csrftoken = getCookie('csrftoken') || '{{ csrf_token }}';
+
+    // Функции для бронирования
+    function openBookingModal(serviceId) {
+        document.getElementById('serviceId').value = serviceId;
+        document.getElementById('bookingModal').style.display = 'block';
+    }
+
+    function closeBookingModal() {
+        document.getElementById('bookingModal').style.display = 'none';
+        document.getElementById('bookingForm').reset();
+    }
 
     function submitBooking() {
         const form = document.getElementById('bookingForm');
@@ -514,10 +512,8 @@
             return;
         }
 
-        // Создаем дату в локальном времени (без временной зоны)
         const startDate = new Date(`${bookingDate}T${bookingTime}`);
-        const startDateStr = startDate.toISOString().slice(0, 16); // Формат: YYYY-MM-DDTHH:MM
-
+        const startDateStr = startDate.toISOString().slice(0, 16);
         let endDateStr;
         if (durationType === 'hour') {
             const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
@@ -544,7 +540,7 @@
         .then(data => {
             if (data.success) {
                 alert('Бронирование успешно создано!');
-                closeModal();
+                closeBookingModal();
                 location.reload();
             } else {
                 alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
@@ -558,6 +554,8 @@
 
     // Функции для управления услугами
     function openAddServiceModal() {
+        document.getElementById('addServiceForm').reset();
+        document.getElementById('serviceType').selectedIndex = 0;
         document.getElementById('addServiceModal').style.display = 'block';
     }
 
@@ -567,21 +565,41 @@
     }
 
     function openEditServiceModal(serviceId) {
-        // Здесь должна быть логика загрузки данных услуги
-        // Для примера просто открываем модальное окно
         document.getElementById('editServiceId').value = serviceId;
         document.getElementById('editServiceModal').style.display = 'block';
 
-        // В реальном приложении здесь должен быть fetch для получения данных услуги
-        // и заполнение формы этими данными
+        fetch(`/get_service/${serviceId}/`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('editServiceName').value = data.service.name;
+                document.getElementById('editServiceType').value = data.service.service_type_id;
+                document.getElementById('editServiceDescription').value = data.service.description || '';
+                document.getElementById('editPricePerHour').value = data.service.price_per_hour;
+                document.getElementById('editPricePerDay').value = data.service.price_per_day;
+            } else {
+                alert('Ошибка при загрузке данных услуги: ' + (data.error || 'Неизвестная ошибка'));
+                closeEditServiceModal();
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Произошла ошибка при загрузке данных услуги.');
+            closeEditServiceModal();
+        });
     }
 
     function closeEditServiceModal() {
         document.getElementById('editServiceModal').style.display = 'none';
-        document.getElementById('editServiceForm').reset();
     }
 
-    function confirmDeleteService(serviceId) {
+    function confirmDelete(serviceId) {
         if (confirm('Вы уверены, что хотите удалить эту услугу?')) {
             fetch(`/delete_service/${serviceId}/`, {
                 method: 'POST',
@@ -589,19 +607,27 @@
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include'
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `Ошибка ${response.status}: ${response.statusText}`);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     alert('Услуга успешно удалена!');
                     location.reload();
                 } else {
-                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                    alert(data.error || 'Ошибка при удалении');
                 }
             })
             .catch(error => {
                 console.error('Ошибка:', error);
-                alert('Произошла ошибка при удалении услуги.');
+                alert(`Произошла ошибка при удалении услуги: ${error.message}`);
             });
         }
     }
@@ -667,7 +693,7 @@
         const editServiceModal = document.getElementById('editServiceModal');
 
         if (event.target === bookingModal) {
-            closeModal();
+            closeBookingModal();
         }
         if (event.target === addServiceModal) {
             closeAddServiceModal();
