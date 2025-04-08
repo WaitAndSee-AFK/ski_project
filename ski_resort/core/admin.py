@@ -1,11 +1,11 @@
 from django.contrib import admin
-from .models import CustomUser, Role, Price, Service, ServiceType, Equipment, Review, Booking  # Добавили ServiceType
+from .models import CustomUser, Role, Price, Service, Equipment, Review, Booking
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ['phone_number', 'first_name', 'last_name', 'role', 'is_staff']
+    list_display = ['phone_number', 'username', 'first_name', 'last_name', 'role', 'is_staff']
     list_filter = ['role', 'is_staff', 'is_superuser']
-    search_fields = ['phone_number', 'first_name', 'last_name']
+    search_fields = ['phone_number', 'username', 'first_name', 'last_name']
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
@@ -20,17 +20,12 @@ class PriceAdmin(admin.ModelAdmin):
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
     list_display = ['name', 'service_type', 'price_display']
-    list_filter = ['service_type']  # Фильтр теперь по ForeignKey
+    list_filter = ['service_type']
     search_fields = ['name']
 
     def price_display(self, obj):
-        return f"{obj.price.price_per_hour} / {obj.price.price_per_day}" if obj.price else "Нет цены"
+        return f"{obj.price.price_per_hour} / {obj.price.price_per_day}"
     price_display.short_description = 'Цена (час/день)'
-
-@admin.register(ServiceType)  # Добавили регистрацию ServiceType
-class ServiceTypeAdmin(admin.ModelAdmin):
-    list_display = ['name']  # Отображаем поле name
-    search_fields = ['name']  # Поиск по имени
 
 @admin.register(Equipment)
 class EquipmentAdmin(admin.ModelAdmin):
