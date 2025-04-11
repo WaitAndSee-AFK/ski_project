@@ -2,20 +2,48 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
-from .models import Review, CustomUser, Booking, Service, Equipment
+from .models import Review, CustomUser, Booking, Service, Equipment, Role
 
-
+# Форма для фильтрации бронирований
 class BookingFilterForm(forms.Form):
-    STATUS_CHOICES = (('', 'Все'),) + Booking.STATUS_CHOICES
-    status = forms.ChoiceField(choices=STATUS_CHOICES, required=False, label='Статус')
-    start_date = forms.DateField(required=False, label='С даты', widget=forms.DateInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(required=False, label='По дату', widget=forms.DateInput(attrs={'type': 'date'}))
+    service = forms.ModelChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        label='Услуга',
+        empty_label='Все услуги'
+    )
+    equipment = forms.ModelChoiceField(
+        queryset=Equipment.objects.all(),
+        required=False,
+        label='Оборудование',
+        empty_label='Все оборудование'
+    )
+    start_date = forms.DateField(
+        required=False,
+        label='С даты',
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    end_date = forms.DateField(
+        required=False,
+        label='По дату',
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    duration_type = forms.ChoiceField(
+        choices=[('', 'Все'), ('hour', 'Час'), ('day', 'День')],
+        required=False,
+        label='Тип длительности'
+    )
 
-
+# Форма для аутентификации пользователя
 class CustomAuthenticationForm(forms.Form):
-    phone_number = forms.CharField(label='Номер телефона', widget=forms.TextInput(attrs={'class': 'form-control'}))
-    password = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
-
+    phone_number = forms.CharField(
+        label='Номер телефона',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    password = forms.CharField(
+        label='Пароль',
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
 
 # Форма для бронирования услуги
 class BookingForm(forms.ModelForm):
@@ -59,7 +87,6 @@ class BookingForm(forms.ModelForm):
 
         return cleaned_data
 
-
 # Форма регистрации пользователя
 class CustomUserCreationForm(UserCreationForm):
     phone_number = forms.CharField(
@@ -96,10 +123,16 @@ class CustomUserCreationForm(UserCreationForm):
             'placeholder': 'Повторите пароль'
         })
     )
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.all(),
+        required=False,
+        label='Роль',
+        empty_label='Без роли'
+    )
 
     class Meta:
         model = CustomUser
-        fields = ('first_name', 'phone_number', 'password1', 'password2')
+        fields = ('first_name', 'phone_number', 'password1', 'password2', 'role')
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
@@ -125,10 +158,12 @@ class CustomUserCreationForm(UserCreationForm):
         user = super().save(commit=False)
         user.username = self.cleaned_data['phone_number']  # Используем телефон как username
         user.phone_number = self.cleaned_data['phone_number']
+        if self.cleaned_data.get('role'):
+            user.role = self.cleaned_data['role']
+        # Логика роли будет обработана в методе save модели
         if commit:
             user.save()
         return user
-
 
 # Форма для заполнения отзыва
 class ReviewForm(forms.ModelForm):
