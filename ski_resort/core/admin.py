@@ -1,16 +1,17 @@
+# core/admin.py
 from django.contrib import admin
 from .models import CustomUser, Role, Price, ServiceType, Service, Equipment, Review, Booking
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('phone_number', 'first_name', 'last_name', 'role_id', 'is_staff')
-    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    list_display = ('phone_number', 'first_name', 'last_name', 'role', 'is_staff')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'role')
     search_fields = ('phone_number', 'first_name', 'last_name')
     ordering = ('-date_joined',)
     fieldsets = (
         (None, {'fields': ('phone_number', 'password')}),
-        ('Персональная информация', {'fields': ('first_name', 'last_name', 'role_id')}),
-        ('Права доступа', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
+        ('Личная информация', {'fields': ('first_name', 'last_name', 'role')}),
+        ('Разрешения', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
     )
 
 @admin.register(Role)
@@ -34,14 +35,15 @@ class ServiceTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'service_type_id', 'price_id', 'description')
-    list_filter = ('service_type_id',)
+    list_display = ('id', 'name', 'service_type')
     search_fields = ('name', 'description')
+    list_filter = ('service_type',)
+    filter_horizontal = ('equipment', 'prices')
     ordering = ('id',)
 
 @admin.register(Equipment)
 class EquipmentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'service_id', 'size', 'status')
+    list_display = ('id', 'name', 'size', 'status')
     list_filter = ('status',)
     search_fields = ('name', 'size')
     list_editable = ('status',)
@@ -49,9 +51,9 @@ class EquipmentAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'user_id', 'rating', 'created_at', 'approved')
-    list_filter = ('approved', 'rating')
-    search_fields = ('title', 'content', 'user_id')
+    list_display = ('id', 'title', 'user', 'rating', 'created_at', 'approved')
+    list_filter = ('approved', 'rating', 'user')
+    search_fields = ('title', 'content', 'user__phone_number')
     list_editable = ('approved',)
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)
@@ -63,17 +65,15 @@ class ReviewAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user_id', 'service_id', 'equipment_id', 'status', 'start_date', 'end_date', 'total_cost')
-    list_filter = ('status', 'duration_type')
-    search_fields = ('user_id', 'service_id', 'equipment_id')
+    list_display = ('id', 'service', 'equipment', 'start_date', 'end_date', 'duration_type')
+    list_filter = ('duration_type', 'service', 'equipment')
+    search_fields = ('service__name', 'equipment__name')
     date_hierarchy = 'start_date'
     ordering = ('-start_date',)
     fieldsets = (
-        (None, {
-            'fields': ('user_id', 'service_id', 'equipment_id', 'status')
-        }),
-        ('Даты и стоимость', {
-            'fields': ('start_date', 'end_date', 'duration_type', 'total_cost'),
+        (None, {'fields': ('service', 'equipment', 'duration_type')}),
+        ('Даты', {
+            'fields': ('start_date', 'end_date'),
             'classes': ('collapse',)
         }),
     )

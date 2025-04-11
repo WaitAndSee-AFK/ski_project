@@ -57,11 +57,6 @@
         margin: 10px 0;
     }
 
-    .price {
-        color: #1a73e8;
-        font-weight: 500;
-    }
-
     .no-bookings {
         padding: 20px;
         text-align: center;
@@ -170,23 +165,6 @@
         box-sizing: border-box;
     }
 
-    .status {
-        font-size: 14px;
-        margin-top: 10px;
-    }
-
-    .status-active {
-        color: #388e3c;
-    }
-
-    .status-completed {
-        color: #1976d2;
-    }
-
-    .status-canceled {
-        color: #d32f2f;
-    }
-
     @media (max-width: 600px) {
         .profile-container {
             padding: 20px;
@@ -199,6 +177,7 @@
     }
 </style>
 
+<!-- Отображение сообщений пользователю -->
 {% if messages %}
     <div class="messages">
         {% for message in messages %}
@@ -210,6 +189,7 @@
 {% endif %}
 
 <div class="profile-container">
+    <!-- Заголовок профиля с именем пользователя -->
     {% if user.first_name %}
         <h1>Ваш профиль, {{ user.first_name }}{% if user.last_name %} {{ user.last_name }}{% endif %}</h1>
     {% else %}
@@ -221,42 +201,24 @@
         <ul class="bookings-list">
             {% for booking in bookings %}
                 <li class="booking-item">
-                    {% with service=services|lookup:booking.service_id %}
-                        {% if service %}
-                            <strong>{{ service.name|default:"Неизвестная услуга" }}</strong>
-                            {% with price=prices|lookup:service.price_id %}
-                                {% if price %}
-                                    <span class="price">
-                                        {% if booking.duration_type == 'hour' %}
-                                            {{ price.price_per_hour }} руб./час
-                                        {% else %}
-                                            {{ price.price_per_day }} руб./день
-                                        {% endif %}
-                                    </span>
-                                {% endif %}
-                            {% endwith %}
-                        {% else %}
-                            {% with equipment=equipment|lookup:booking.equipment_id %}
-                                {% if equipment %}
-                                    <strong>{{ equipment.name|default:"Неизвестное оборудование" }}</strong>
-                                {% else %}
-                                    <strong>Бронирование #{{ booking.id }}</strong>
-                                {% endif %}
-                            {% endwith %}
-                        {% endif %}
-                    {% endwith %}
+                    <!-- Отображение названия услуги или оборудования -->
+                    {% if booking.service %}
+                        <strong>{{ booking.service.name|default:"Неизвестная услуга" }}</strong>
+                    {% elif booking.equipment %}
+                        <strong>{{ booking.equipment.name|default:"Неизвестное оборудование" }}</strong>
+                    {% else %}
+                        <strong>Бронирование #{{ booking.id }}</strong>
+                    {% endif %}
 
+                    <!-- Даты и тип длительности -->
                     <p class="dates">
                         С {{ booking.start_date|date:"d.m.Y H:i" }}
                         по {{ booking.end_date|date:"d.m.Y H:i" }}
                         ({{ booking.duration_type|default:"час" }})
                     </p>
 
-                    <p class="status status-{{ booking.status }}">
-                        Статус: {{ booking.get_status_display }}
-                    </p>
-
-                    {% if booking.status == 'active' %}
+                    <!-- Кнопки действий доступны только для активных бронирований -->
+                    {% if booking.end_date > now %}
                     <div class="booking-actions">
                         <button class="edit-booking"
                             onclick="openEditModal({{ booking.id }}, '{{ booking.start_date|date:'Y-m-d' }}', '{{ booking.start_date|time:'H:i' }}')">
@@ -275,6 +237,7 @@
     {% endif %}
 </div>
 
+<!-- Модальное окно для редактирования бронирования -->
 <div id="editModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -284,7 +247,7 @@
         <div class="modal-body">
             <form id="editForm">
                 {% csrf_token %}
-                <input type="hidden" id="bookingId" name="booking_id">
+                <input type="hidden" id="bookingId" gesam="booking_id">
                 <label for="editDate">Дата бронирования:</label>
                 <input type="date" id="editDate" name="edit_date" required>
                 <label for="editTime">Время бронирования:</label>
@@ -304,6 +267,7 @@
 </div>
 
 <script>
+    // Скрытие сообщений через 3 секунды
     function hideMessages() {
         const messages = document.querySelectorAll('.alert');
         messages.forEach(message => {
@@ -316,6 +280,7 @@
 
     document.addEventListener('DOMContentLoaded', hideMessages);
 
+    // Получение CSRF-токена из cookies
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -333,6 +298,7 @@
 
     const csrftoken = getCookie('csrftoken');
 
+    // Функция отмены бронирования
     function cancelBooking(bookingId) {
         if (confirm("Вы уверены, что хотите отменить бронирование?")) {
             fetch(`/cancel_booking/${bookingId}/`, {
@@ -345,7 +311,7 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error('Ошибка сети');
                 }
                 return response.json();
             })
@@ -364,6 +330,7 @@
         }
     }
 
+    // Открытие модального окна для редактирования
     function openEditModal(bookingId, startDate, startTime) {
         document.getElementById('bookingId').value = bookingId;
         document.getElementById('editDate').value = startDate;
@@ -371,11 +338,13 @@
         document.getElementById('editModal').style.display = 'block';
     }
 
+    // Закрытие модального окна
     function closeEditModal() {
         document.getElementById('editModal').style.display = 'none';
         document.getElementById('editForm').reset();
     }
 
+    // Отправка изменений бронирования
     function submitEditBooking() {
         const bookingId = document.getElementById('bookingId').value;
         const editDate = document.getElementById('editDate').value;
@@ -412,7 +381,7 @@
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error('Ошибка сети');
             }
             return response.json();
         })
@@ -431,6 +400,7 @@
         });
     }
 
+    // Закрытие модального окна при клике вне его
     window.onclick = function(event) {
         const modal = document.getElementById('editModal');
         if (event.target === modal) {
