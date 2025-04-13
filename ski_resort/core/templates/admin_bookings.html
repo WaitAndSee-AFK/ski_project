@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load lookup_tags %}
+
 {% block content %}
+<!-- Стили для страницы бронирований -->
 <style>
     body {
         background-color: white;
@@ -94,9 +96,11 @@
     }
 </style>
 
+<!-- Основной контейнер для отображения бронирований -->
 <div class="booking-container">
     <h1>Все бронирования</h1>
     {% if bookings %}
+        <!-- Выпадающий список для выбора бронирования -->
         <select class="booking-dropdown" id="booking-select" onchange="showBookingDetails()">
             <option value="">Выберите бронирование</option>
             {% for booking in bookings %}
@@ -111,6 +115,7 @@
             {% endfor %}
         </select>
 
+        <!-- Детали каждого бронирования -->
         {% for booking in bookings %}
             <div id="booking-{{ booking.id }}" class="booking-details">
                 {% with user=users|lookup:booking.user_id %}
@@ -122,13 +127,16 @@
                 {% with equipment=equipment|lookup:booking.equipment_id %}
                     <p><strong>Снаряжение:</strong> {{ equipment.name|default:"—" }}</p>
                 {% endwith %}
-                <p><strong>Дата начала:</strong> {{ booking.start_date }}</p>
-                <p><strong>Дата окончания:</strong> {{ booking.end_date }}</p>
-                <p><strong>Статус:</strong> {{ booking.get_status_display }}</p>
+                <p><strong>Дата начала:</strong> {{ booking.start_date|date:"Y-m-d H:i" }}</p>
+                <p><strong>Дата окончания:</strong> {{ booking.end_date|date:"Y-m-d H:i" }}</p>
+                <!-- Проверяем, есть ли метод get_status_display -->
+                <p><strong>Статус:</strong> {{ booking.get_status_display|default:"Не указан" }}</p>
 
+                <!-- Кнопки для редактирования и отмены -->
                 <button class="btn btn-edit" onclick="showEditForm('{{ booking.id }}')">Изменить</button>
                 <button class="btn btn-cancel" onclick="cancelBooking('{{ booking.id }}')">Отменить</button>
 
+                <!-- Форма редактирования бронирования -->
                 <form id="edit-form-{{ booking.id }}" class="edit-form" method="POST" action="{% url 'edit_booking' booking.id %}">
                     {% csrf_token %}
                     <input type="datetime-local" name="start_date" value="{{ booking.start_date|date:'Y-m-d\TH:i' }}" required>
@@ -142,7 +150,9 @@
     {% endif %}
 </div>
 
+<!-- JavaScript для интерактивности -->
 <script>
+    // Функция для отображения деталей выбранного бронирования
     function showBookingDetails() {
         var select = document.getElementById('booking-select');
         var bookingId = select.value;
@@ -160,15 +170,13 @@
         }
     }
 
+    // Функция для показа/скрытия формы редактирования
     function showEditForm(bookingId) {
         var form = document.getElementById('edit-form-' + bookingId);
-        if (form.style.display === 'block') {
-            form.style.display = 'none';
-        } else {
-            form.style.display = 'block';
-        }
+        form.style.display = form.style.display === 'block' ? 'none' : 'block';
     }
 
+    // Функция для отмены бронирования
     function cancelBooking(bookingId) {
         if (confirm('Вы уверены, что хотите отменить это бронирование?')) {
             fetch('/cancel_booking/' + bookingId + '/', {
