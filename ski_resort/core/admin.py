@@ -1,4 +1,3 @@
-# core/admin.py
 from django.contrib import admin
 from .models import CustomUser, Role, Price, ServiceType, Service, Equipment, Review, Booking
 
@@ -65,13 +64,13 @@ class ReviewAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'service', 'equipment', 'start_date', 'end_date', 'duration_type')
-    list_filter = ('duration_type', 'service', 'equipment')
-    search_fields = ('service__name', 'equipment__name')
+    list_display = ('id', 'user', 'service', 'equipment', 'start_date', 'end_date', 'duration_type')
+    list_filter = ('duration_type', 'service', 'equipment', 'user')
+    search_fields = ('service__name', 'equipment__name', 'user__phone_number', 'user__first_name', 'user__last_name')
     date_hierarchy = 'start_date'
     ordering = ('-start_date',)
     fieldsets = (
-        (None, {'fields': ('service', 'equipment', 'duration_type')}),
+        (None, {'fields': ('user', 'service', 'equipment', 'duration_type')}),
         ('Даты', {
             'fields': ('start_date', 'end_date'),
             'classes': ('collapse',)
