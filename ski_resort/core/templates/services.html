@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
+<!-- Стили для страницы услуг -->
 <style>
-    /* Стили остаются без изменений */
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
@@ -119,7 +119,6 @@
         background-color: #138496;
     }
 
-    /* Стили кнопки удаления как в админ-панели */
     .delete-btn {
         background-color: #d9534f;
         color: white;
@@ -331,9 +330,11 @@
     }
 </style>
 
+<!-- Основной контейнер страницы -->
 <div class="container">
     <h1>Услуги</h1>
 
+    <!-- Кнопка добавления услуги для администраторов -->
     {% if user.is_staff or user.is_superuser %}
     <div class="action-buttons">
         <button class="btn-add-service" onclick="openAddServiceModal()">
@@ -342,25 +343,39 @@
     </div>
     {% endif %}
 
+    <!-- Список услуг -->
     <ul>
         {% for service in services %}
             <li>
+                <!-- Кнопки редактирования и удаления для администраторов -->
                 {% if user.is_staff or user.is_superuser %}
                 <div class="admin-actions">
                     <button class="btn-admin btn-edit" onclick="openEditServiceModal('{{ service.id }}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <!-- Кнопка удаления как в админ-панели -->
                     <button class="delete-btn" onclick="confirmDelete('{{ service.id }}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
                 {% endif %}
 
-                <h3>{{ service.name }} ({{ service.service_type.name }})</h3>
-                <p>{{ service.description }}</p>
+                <!-- Название и тип услуги -->
+                <h3>{{ service.name }} ({{ service.service_type.name|default:"—" }})</h3>
+                <!-- Описание услуги -->
+                <p>{{ service.description|default:"Нет описания" }}</p>
+                <!-- Контейнер для цен -->
                 <div class="price-container">
-                    <div class="price">Цена: {{ service.price.price_per_hour }} руб./час, {{ service.price.price_per_day }} руб./день</div>
+                    <!-- Отображаем первую цену из списка цен -->
+                    <div class="price">
+                        {% with price=service.prices.first %}
+                            {% if price %}
+                                Цена: {{ price.price_per_hour }} руб./час, {{ price.price_per_day }} руб./день
+                            {% else %}
+                                Цена: не указана
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                    <!-- Кнопка бронирования для авторизованных пользователей -->
                     {% if user.is_authenticated %}
                         <button type="button" class="btn-booking" onclick="openBookingModal('{{ service.id }}')">
                             Забронировать
@@ -372,7 +387,7 @@
     </ul>
 </div>
 
-<!-- Модальное окно для бронирования -->
+<!-- Модальное окно для бронирования услуги -->
 <div id="bookingModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -469,9 +484,10 @@
     </div>
 </div>
 
+<!-- Подключение Font Awesome для иконок -->
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 <script>
-    // Получение CSRF-токена
+    // Получение CSRF-токена из cookies
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -489,17 +505,19 @@
 
     const csrftoken = getCookie('csrftoken') || '{{ csrf_token }}';
 
-    // Функции для бронирования
+    // Функция открытия модального окна для бронирования
     function openBookingModal(serviceId) {
         document.getElementById('serviceId').value = serviceId;
         document.getElementById('bookingModal').style.display = 'block';
     }
 
+    // Функция закрытия модального окна бронирования
     function closeBookingModal() {
         document.getElementById('bookingModal').style.display = 'none';
         document.getElementById('bookingForm').reset();
     }
 
+    // Функция отправки формы бронирования
     function submitBooking() {
         const form = document.getElementById('bookingForm');
         const serviceId = document.getElementById('serviceId').value;
@@ -552,18 +570,20 @@
         });
     }
 
-    // Функции для управления услугами
+    // Функция открытия модального окна для добавления услуги
     function openAddServiceModal() {
         document.getElementById('addServiceForm').reset();
         document.getElementById('serviceType').selectedIndex = 0;
         document.getElementById('addServiceModal').style.display = 'block';
     }
 
+    // Функция открытия модального окна для редактирования услуги
     function closeAddServiceModal() {
         document.getElementById('addServiceModal').style.display = 'none';
         document.getElementById('addServiceForm').reset();
     }
 
+    // Функция открытия модального окна для редактирования услуги
     function openEditServiceModal(serviceId) {
         document.getElementById('editServiceId').value = serviceId;
         document.getElementById('editServiceModal').style.display = 'block';
@@ -579,10 +599,10 @@
         .then(data => {
             if (data.success) {
                 document.getElementById('editServiceName').value = data.service.name;
-                document.getElementById('editServiceType').value = data.service.service_type_id;
+                document.getElementById('editServiceType').value = data.service.service_type_id || '';
                 document.getElementById('editServiceDescription').value = data.service.description || '';
-                document.getElementById('editPricePerHour').value = data.service.price_per_hour;
-                document.getElementById('editPricePerDay').value = data.service.price_per_day;
+                document.getElementById('editPricePerHour').value = data.service.price_per_hour || '0.00';
+                document.getElementById('editPricePerDay').value = data.service.price_per_day || '0.00';
             } else {
                 alert('Ошибка при загрузке данных услуги: ' + (data.error || 'Неизвестная ошибка'));
                 closeEditServiceModal();
@@ -595,10 +615,12 @@
         });
     }
 
+    // Функция закрытия модального окна редактирования
     function closeEditServiceModal() {
         document.getElementById('editServiceModal').style.display = 'none';
     }
 
+    // Функция подтверждения удаления услуги
     function confirmDelete(serviceId) {
         if (confirm('Вы уверены, что хотите удалить эту услугу?')) {
             fetch(`/delete_service/${serviceId}/`, {
@@ -632,6 +654,7 @@
         }
     }
 
+    // Функция отправки формы добавления услуги
     function submitAddService() {
         const form = document.getElementById('addServiceForm');
         const formData = new FormData(form);
@@ -659,6 +682,7 @@
         });
     }
 
+    // Функция отправки формы редактирования услуги
     function submitEditService() {
         const form = document.getElementById('editServiceForm');
         const formData = new FormData(form);
@@ -687,6 +711,7 @@
         });
     }
 
+    // Закрытие модальных окон при клике вне их области
     window.onclick = function(event) {
         const bookingModal = document.getElementById('bookingModal');
         const addServiceModal = document.getElementById('addServiceModal');
