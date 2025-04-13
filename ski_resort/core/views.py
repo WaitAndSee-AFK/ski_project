@@ -3,19 +3,215 @@ from django.views.generic import ListView, View
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.utils import timezone
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
 from .models import Equipment, Service, Booking, Review, CustomUser, Price, ServiceType
 from .forms import ReviewForm, BookingForm, CustomUserCreationForm
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
+from django.http import JsonResponse, HttpResponseForbidden
+from django.views.decorators.http import require_POST, require_http_methods
+from django.utils import timezone
+from datetime import datetime, timedelta
+from .models import Booking, CustomUser, Service, Equipment
 import json
-from datetime import datetime
+import logging
 
+
+@csrf_exempt
+def get_available_equipment(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            service_id = data.get('service_id')
+
+            if not service_id:
+                equipment = Equipment.objects.filter(status='ready')
+            else:
+                service = Service.objects.get(id=service_id)
+                equipment = service.equipment.filter(status='ready')
+
+            equipment_list = [
+                {'id': equip.id, 'name': equip.name}
+                for equip in equipment
+            ]
+
+            return JsonResponse({
+                'success': True,
+                'equipment': equipment_list
+            })
+        except Service.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Услуга не найдена'
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    return JsonResponse({
+        'success': False,
+        'error': 'Метод не поддерживается'
+    }, status=405)
+
+# Отображение списка бронирований
+@login_required
+def bookings_view(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Доступ запрещён")
+
+    bookings = Booking.objects.all().select_related('user', 'service', 'equipment').order_by('-start_date')
+    users = CustomUser.objects.all()
+    services = Service.objects.all()
+    equipment = Equipment.objects.filter(status='ready')
+
+    return render(request, 'bookings.html', {
+        'bookings': bookings,
+        'users': users,
+        'services': services,
+        'equipment': equipment
+    })
+
+logger = logging.getLogger(__name__)
+
+@login_required
+@require_http_methods(["POST"])
+def get_available_services(request):
+    try:
+        data = json.loads(request.body)
+        start_date_str = data.get('start_date')  # Формат: "2025-04-14T16:50"
+        end_date_str = data.get('end_date')
+        exclude_booking_id = data.get('exclude_booking_id')
+
+        if not start_date_str or not end_date_str:
+            return JsonResponse({'success': False, 'error': 'Не указаны даты'}, status=400)
+
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')
+
+        # Получаем все бронирования, которые пересекаются с заданным интервалом
+        conflicting_bookings = Booking.objects.filter(
+            start_date__lt=end_date,
+            end_date__gt=start_date
+        )
+        if exclude_booking_id:
+            conflicting_bookings = conflicting_bookings.exclude(id=exclude_booking_id)
+
+        # Услуги, которые заняты
+        booked_service_ids = conflicting_bookings.exclude(service__isnull=True).values_list('service__id', flat=True)
+        # Доступные услуги
+        available_services = Service.objects.exclude(id__in=booked_service_ids)
+        services_data = [
+            {'id': s.id, 'name': s.name}
+            for s in available_services
+        ]
+
+        return JsonResponse({
+            'success': True,
+            'services': services_data
+        })
+    except ValueError as e:
+        logger.error(f"Ошибка формата даты: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Неверный формат даты'}, status=400)
+    except Exception as e:
+        logger.error(f"Ошибка при получении доступных услуг: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# Редактирование бронирования
+@login_required
+@require_http_methods(["POST"])
+def edit_booking(request, booking_id):
+    logger.info(f"Начало редактирования бронирования {booking_id} пользователем {request.user.phone_number}")
+    try:
+        booking = get_object_or_404(Booking, id=booking_id)
+        if not (request.user.is_staff or request.user.is_superuser):
+            logger.warning(f"Попытка редактирования бронирования {booking_id} без прав: {request.user.phone_number}")
+            return JsonResponse({'success': False, 'error': 'Нет прав для редактирования'}, status=403)
+
+        data = json.loads(request.body)
+        logger.info(f"Полученные данные: {data}")
+        user_id = data.get('user')
+        service_id = data.get('service')
+        equipment_id = data.get('equipment')
+        start_date_str = data.get('start_date')
+        duration_type = data.get('duration_type')
+
+        if not all([user_id, service_id, start_date_str, duration_type]):
+            logger.error(
+                f"Недостаточно данных для бронирования {booking_id}: user={user_id}, service={service_id}, start_date={start_date_str}, duration_type={duration_type}")
+            return JsonResponse({'success': False, 'error': 'Все обязательные поля должны быть заполнены'}, status=400)
+
+        user = get_object_or_404(CustomUser, id=user_id)
+        service = get_object_or_404(Service, id=service_id)
+        equipment = get_object_or_404(Equipment, id=equipment_id) if equipment_id else None
+
+        if equipment_id:
+            if equipment not in service.equipment.all():
+                logger.error(
+                    f"Оборудование {equipment_id} не связано с услугой {service_id} для бронирования {booking_id}")
+                return JsonResponse({'success': False, 'error': 'Выбранное оборудование не связано с услугой'},
+                                    status=400)
+
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+        if duration_type == 'hour':
+            end_date = start_date + timedelta(hours=1)
+        elif duration_type == 'day':
+            end_date = start_date + timedelta(days=1)
+        else:
+            logger.error(f"Недопустимый duration_type для бронирования {booking_id}: {duration_type}")
+            return JsonResponse({'success': False, 'error': 'Недопустимый тип длительности'}, status=400)
+
+        conflicting_bookings = Booking.objects.filter(
+            service=service,
+            start_date__lt=end_date,
+            end_date__gt=start_date
+        ).exclude(id=booking.id)
+        if conflicting_bookings.exists():
+            logger.error(f"Конфликт времени для услуги {service_id} в бронировании {booking_id}")
+            return JsonResponse({'success': False, 'error': 'Выбранное время уже занято для услуги'}, status=400)
+
+        if equipment_id:
+            conflicting_equipment = Booking.objects.filter(
+                equipment=equipment,
+                start_date__lt=end_date,
+                end_date__gt=start_date
+            ).exclude(id=booking.id)
+            if conflicting_equipment.exists():
+                logger.error(f"Конфликт оборудования {equipment_id} в бронировании {booking_id}")
+                return JsonResponse({'success': False, 'error': 'Выбранное оборудование занято'}, status=400)
+
+        booking.user = user
+        booking.service = service
+        booking.equipment = equipment
+        booking.start_date = start_date
+        booking.end_date = end_date
+        booking.duration_type = duration_type
+        booking.save()
+
+        logger.info(f"Бронирование {booking_id} успешно обновлено пользователем {request.user.phone_number}")
+        return JsonResponse({'success': True, 'message': 'Бронирование успешно обновлено'})
+    except ValueError as e:
+        logger.error(f"Ошибка редактирования бронирования {booking_id}: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка редактирования бронирования {booking_id}: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# Отмена бронирования
+@login_required
+@require_POST
+def cancel_booking(request, booking_id):
+    try:
+        booking = get_object_or_404(Booking, id=booking_id)
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'success': False, 'error': 'Нет прав для отмены'}, status=403)
+        booking.delete()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 # Представление для входа пользователя
 class CustomLoginView(LoginView):
@@ -164,23 +360,6 @@ def delete_service(request, service_id):
         return JsonResponse({'success': False, 'error': 'Услуга не найдена'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-# Отмена бронирования (для администратора и пользователя)
-@login_required
-@csrf_exempt
-@require_POST
-def cancel_booking(request, booking_id):
-    try:
-        booking = get_object_or_404(Booking, id=booking_id)
-        # Проверяем, имеет ли пользователь право отменить бронирование
-        if not (request.user.is_staff or request.user.is_superuser or booking.user == request.user):
-            return JsonResponse({'success': False, 'error': 'Нет прав для отмены'}, status=403)
-
-        booking.delete()  # Удаляем бронирование
-        return JsonResponse({'success': True, 'message': 'Бронирование успешно отменено'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 # Отображение списка утвержденных отзывов
