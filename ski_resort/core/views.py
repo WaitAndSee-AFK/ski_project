@@ -13,52 +13,16 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_http_methods
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .models import Booking, CustomUser, Service, Equipment
 import json
 import logging
 
+logger = logging.getLogger(__name__)
 
-@csrf_exempt
-def get_available_equipment(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            service_id = data.get('service_id')
-
-            if not service_id:
-                equipment = Equipment.objects.filter(status='ready')
-            else:
-                service = Service.objects.get(id=service_id)
-                equipment = service.equipment.filter(status='ready')
-
-            equipment_list = [
-                {'id': equip.id, 'name': equip.name}
-                for equip in equipment
-            ]
-
-            return JsonResponse({
-                'success': True,
-                'equipment': equipment_list
-            })
-        except Service.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'error': 'Услуга не найдена'
-            }, status=404)
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            }, status=500)
-    return JsonResponse({
-        'success': False,
-        'error': 'Метод не поддерживается'
-    }, status=405)
-
-# Отображение списка бронирований
 @login_required
 def bookings_view(request):
+    logger.info(f"Запрос страницы бронирований от пользователя {request.user.phone_number}")
     if not (request.user.is_staff or request.user.is_superuser):
+        logger.warning(f"Попытка доступа к странице бронирований без прав: {request.user.phone_number}")
         return HttpResponseForbidden("Доступ запрещён")
 
     bookings = Booking.objects.all().select_related('user', 'service', 'equipment').order_by('-start_date')
@@ -66,31 +30,30 @@ def bookings_view(request):
     services = Service.objects.all()
     equipment = Equipment.objects.filter(status='ready')
 
-    return render(request, 'bookings.html', {
+    return render(request, 'admin_bookings.html', {
         'bookings': bookings,
         'users': users,
         'services': services,
         'equipment': equipment
     })
 
-logger = logging.getLogger(__name__)
-
 @login_required
 @require_http_methods(["POST"])
 def get_available_services(request):
     try:
         data = json.loads(request.body)
-        start_date_str = data.get('start_date')  # Формат: "2025-04-14T16:50"
+        start_date_str = data.get('start_date')
         end_date_str = data.get('end_date')
         exclude_booking_id = data.get('exclude_booking_id')
 
         if not start_date_str or not end_date_str:
             return JsonResponse({'success': False, 'error': 'Не указаны даты'}, status=400)
 
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')
+        naive_start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+        naive_end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')
+        start_date = timezone.make_aware(naive_start_date)
+        end_date = timezone.make_aware(naive_end_date)
 
-        # Получаем все бронирования, которые пересекаются с заданным интервалом
         conflicting_bookings = Booking.objects.filter(
             start_date__lt=end_date,
             end_date__gt=start_date
@@ -98,9 +61,7 @@ def get_available_services(request):
         if exclude_booking_id:
             conflicting_bookings = conflicting_bookings.exclude(id=exclude_booking_id)
 
-        # Услуги, которые заняты
         booked_service_ids = conflicting_bookings.exclude(service__isnull=True).values_list('service__id', flat=True)
-        # Доступные услуги
         available_services = Service.objects.exclude(id__in=booked_service_ids)
         services_data = [
             {'id': s.id, 'name': s.name}
@@ -118,8 +79,66 @@ def get_available_services(request):
         logger.error(f"Ошибка при получении доступных услуг: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+@csrf_exempt
+@require_POST
+def get_available_equipment(request):
+    try:
+        data = json.loads(request.body)
+        service_id = data.get('service_id')
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
+        exclude_booking_id = data.get('exclude_booking_id')
 
-# Редактирование бронирования
+        logger.info(f"Запрос оборудования: service_id={service_id}, start_date={start_date_str}, end_date={end_date_str}, exclude_booking_id={exclude_booking_id}")
+
+        if not service_id or not start_date_str or not end_date_str:
+            return JsonResponse({'success': False, 'error': 'Не указаны обязательные параметры'}, status=400)
+
+        try:
+            naive_start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+            naive_end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')
+        except ValueError as e:
+            logger.error(f"Неверный формат даты: {str(e)}. Попробуем другой формат.")
+            try:
+                start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+                end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
+            except ValueError as e2:
+                logger.error(f"Не удалось распарсить даты: {str(e2)}")
+                return JsonResponse({'success': False, 'error': 'Неверный формат даты'}, status=400)
+        else:
+            start_date = timezone.make_aware(naive_start_date)
+            end_date = timezone.make_aware(naive_end_date)
+
+        equipment = Equipment.objects.filter(services__id=service_id, status='ready')
+        logger.info(f"Найдено оборудования для услуги {service_id}: {list(equipment)}")
+
+        available_equipment = []
+        for equip in equipment:
+            overlapping_bookings = Booking.objects.filter(
+                equipment=equip,
+                start_date__lt=end_date,
+                end_date__gt=start_date
+            )
+            if exclude_booking_id:
+                overlapping_bookings = overlapping_bookings.exclude(id=exclude_booking_id)
+
+            logger.info(f"Оборудование {equip.name} (ID: {equip.id}): пересечения = {list(overlapping_bookings)}")
+
+            if not overlapping_bookings.exists():
+                available_equipment.append({
+                    'id': equip.id,
+                    'name': equip.name
+                })
+
+        logger.info(f"Доступное оборудование: {available_equipment}")
+        return JsonResponse({'success': True, 'equipment': available_equipment})
+    except ValueError as e:
+        logger.error(f"Ошибка формата даты: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Неверный формат даты'}, status=400)
+    except Exception as e:
+        logger.error(f"Ошибка при получении оборудования: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 @login_required
 @require_http_methods(["POST"])
 def edit_booking(request, booking_id):
@@ -131,7 +150,6 @@ def edit_booking(request, booking_id):
             return JsonResponse({'success': False, 'error': 'Нет прав для редактирования'}, status=403)
 
         data = json.loads(request.body)
-        logger.info(f"Полученные данные: {data}")
         user_id = data.get('user')
         service_id = data.get('service')
         equipment_id = data.get('equipment')
@@ -147,14 +165,13 @@ def edit_booking(request, booking_id):
         service = get_object_or_404(Service, id=service_id)
         equipment = get_object_or_404(Equipment, id=equipment_id) if equipment_id else None
 
-        if equipment_id:
-            if equipment not in service.equipment.all():
-                logger.error(
-                    f"Оборудование {equipment_id} не связано с услугой {service_id} для бронирования {booking_id}")
-                return JsonResponse({'success': False, 'error': 'Выбранное оборудование не связано с услугой'},
-                                    status=400)
+        if equipment_id and equipment not in service.equipment.all():
+            logger.error(f"Оборудование {equipment_id} не связано с услугой {service_id} для бронирования {booking_id}")
+            return JsonResponse({'success': False, 'error': 'Выбранное оборудование не связано с услугой'}, status=400)
 
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+        naive_start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+        start_date = timezone.make_aware(naive_start_date)
+
         if duration_type == 'hour':
             end_date = start_date + timedelta(hours=1)
         elif duration_type == 'day':
@@ -199,47 +216,117 @@ def edit_booking(request, booking_id):
         logger.error(f"Неизвестная ошибка редактирования бронирования {booking_id}: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-
-# Отмена бронирования
 @login_required
 @require_POST
-def cancel_booking(request, booking_id):
+def delete_booking(request, booking_id):
+    logger.info(f"Удаление бронирования {booking_id} пользователем {request.user.phone_number}")
     try:
         booking = get_object_or_404(Booking, id=booking_id)
         if not (request.user.is_staff or request.user.is_superuser):
-            return JsonResponse({'success': False, 'error': 'Нет прав для отмены'}, status=403)
+            logger.warning(f"Попытка удаления бронирования {booking_id} без прав: {request.user.phone_number}")
+            return JsonResponse({'success': False, 'error': 'Нет прав для удаления'}, status=403)
+
         booking.delete()
-        return JsonResponse({'success': True})
+        logger.info(f"Бронирование {booking_id} успешно удалено пользователем {request.user.phone_number}")
+        return JsonResponse({'success': True, 'message': 'Бронирование успешно удалено'})
     except Exception as e:
+        logger.error(f"Ошибка удаления бронирования {booking_id}: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-# Представление для входа пользователя
+@login_required
+@require_http_methods(["POST"])
+def create_booking(request):
+    logger.info(f"Создание бронирования пользователем {request.user.phone_number}")
+    try:
+        if not (request.user.is_staff or request.user.is_superuser):
+            logger.warning(f"Попытка создания бронирования без прав: {request.user.phone_number}")
+            return JsonResponse({'success': False, 'error': 'Нет прав для создания'}, status=403)
+
+        data = json.loads(request.body)
+        user_id = data.get('user')
+        service_id = data.get('service')
+        equipment_id = data.get('equipment')
+        start_date_str = data.get('start_date')
+        duration_type = data.get('duration_type')
+
+        if not all([user_id, service_id, start_date_str, duration_type]):
+            logger.error(f"Недостаточно данных для бронирования: user={user_id}, service={service_id}, start_date={start_date_str}, duration_type={duration_type}")
+            return JsonResponse({'success': False, 'error': 'Все обязательные поля должны быть заполнены'}, status=400)
+
+        user = get_object_or_404(CustomUser, id=user_id)
+        service = get_object_or_404(Service, id=service_id)
+        equipment = get_object_or_404(Equipment, id=equipment_id) if equipment_id else None
+
+        if equipment_id and equipment not in service.equipment.all():
+            logger.error(f"Оборудование {equipment_id} не связано с услугой {service_id}")
+            return JsonResponse({'success': False, 'error': 'Выбранное оборудование не связано с услугой'}, status=400)
+
+        naive_start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+        start_date = timezone.make_aware(naive_start_date)
+
+        if duration_type == 'hour':
+            end_date = start_date + timedelta(hours=1)
+        elif duration_type == 'day':
+            end_date = start_date + timedelta(days=1)
+        else:
+            logger.error(f"Недопустимый duration_type: {duration_type}")
+            return JsonResponse({'success': False, 'error': 'Недопустимый тип длительности'}, status=400)
+
+        conflicting_bookings = Booking.objects.filter(
+            service=service,
+            start_date__lt=end_date,
+            end_date__gt=start_date
+        )
+        if conflicting_bookings.exists():
+            logger.error(f"Конфликт времени для услуги {service_id}")
+            return JsonResponse({'success': False, 'error': 'Выбранное время уже занято для услуги'}, status=400)
+
+        if equipment_id:
+            conflicting_equipment = Booking.objects.filter(
+                equipment=equipment,
+                start_date__lt=end_date,
+                end_date__gt=start_date
+            )
+            if conflicting_equipment.exists():
+                logger.error(f"Конфликт оборудования {equipment_id}")
+                return JsonResponse({'success': False, 'error': 'Выбранное оборудование занято'}, status=400)
+
+        booking = Booking.objects.create(
+            user=user,
+            service=service,
+            equipment=equipment,
+            start_date=start_date,
+            end_date=end_date,
+            duration_type=duration_type
+        )
+
+        logger.info(f"Бронирование {booking.id} успешно создано пользователем {request.user.phone_number}")
+        return JsonResponse({'success': True, 'message': 'Бронирование успешно создано'})
+    except ValueError as e:
+        logger.error(f"Ошибка создания бронирования: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка создания бронирования: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 class CustomLoginView(LoginView):
     template_name = 'login.html'
 
     def get_success_url(self):
-        # Перенаправляем администраторов на страницу бронирований, остальных — в профиль
         user = self.request.user
         if user.is_superuser or user.is_staff:
             return reverse_lazy('bookings_admin')
         return reverse_lazy('profile')
 
-
-# Отображение списка услуг
 def services_view(request):
-    # Получаем все услуги и типы услуг
     services = Service.objects.all()
     service_types = ServiceType.objects.all()
-    # Если пользователь авторизован, получаем его бронирования
     bookings = Booking.objects.filter(user=request.user) if request.user.is_authenticated else None
     return render(request, 'services.html',
                   {'services': services, 'service_types': service_types, 'bookings': bookings})
 
-
-# Получение информации об услуге для администратора
 @login_required
 def get_service(request, service_id):
-    # Проверяем, что пользователь — администратор
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'success': False, 'error': 'Нет прав доступа'}, status=403)
 
@@ -260,13 +347,10 @@ def get_service(request, service_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-
-# Добавление новой услуги администратором
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def add_service(request):
-    # Проверяем права администратора
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'success': False, 'error': 'Нет прав доступа'}, status=403)
 
@@ -295,13 +379,10 @@ def add_service(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-
-# Редактирование услуги администратором
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def edit_service(request, service_id):
-    # Проверяем права администратора
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'success': False, 'error': 'Нет прав доступа'}, status=403)
 
@@ -339,13 +420,10 @@ def edit_service(request, service_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-
-# Удаление услуги администратором
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def delete_service(request, service_id):
-    # Проверяем права администратора
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'success': False, 'error': 'Нет прав доступа'}, status=403)
 
@@ -361,22 +439,17 @@ def delete_service(request, service_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-
-# Отображение списка утвержденных отзывов
 def review_list(request):
-    # Получаем только утверждённые отзывы
     reviews = Review.objects.filter(approved=True).order_by('-created_at')
     return render(request, 'review_list.html', {'reviews': reviews})
 
-
-# Создание нового отзыва пользователем
 @login_required
 def create_review(request):
     if request.method == 'POST':
         form = ReviewForm(request.POST)
         if form.is_valid():
             review = form.save(commit=False)
-            review.user = request.user  # Связываем отзыв с текущим пользователем
+            review.user = request.user
             review.save()
             messages.success(request, 'Ваш отзыв успешно отправлен на модерацию.')
             return redirect('review_list')
@@ -384,22 +457,16 @@ def create_review(request):
         form = ReviewForm()
     return render(request, 'review_form.html', {'form': form})
 
-
-# Модерация отзывов администратором
 @login_required
 def review_moderation(request):
-    # Проверяем, что пользователь — администратор
     if request.user.is_staff:
         reviews = Review.objects.filter(approved=False)
         return render(request, 'review_moderation.html', {'reviews': reviews})
     messages.warning(request, 'У вас нет прав для доступа к этой странице.')
     return redirect('review_list')
 
-
-# Главная страница
 class HomeView(View):
     def get(self, request):
-        # Информация о комплексе для главной страницы
         complex_info = {
             'name': 'Горнолыжный курорт Алтай',
             'description': 'Лучший курорт в регионе с современным оборудованием и трассами',
@@ -407,11 +474,8 @@ class HomeView(View):
         }
         return render(request, 'home.html', {'complex_info': complex_info})
 
-
-# Страница с ценами
 class PricingView(View):
     def get(self, request):
-        # Получаем все цены, услуги и оборудование
         prices = Price.objects.all()
         services = Service.objects.all()
         equipment = Equipment.objects.all()
@@ -422,8 +486,6 @@ class PricingView(View):
         }
         return render(request, 'pricing.html', context)
 
-
-# Регистрация нового пользователя
 class RegisterView(View):
     def get(self, request):
         form = CustomUserCreationForm()
@@ -448,15 +510,12 @@ class RegisterView(View):
             messages.error(request, 'Исправьте ошибки в форме.')
         return render(request, 'register.html', {'form': form})
 
-
-# Профиль пользователя с его бронированиями
 class ProfileView(LoginRequiredMixin, ListView):
     model = Booking
     template_name = 'profile.html'
     context_object_name = 'bookings'
 
     def get_queryset(self):
-        # Показываем активные бронирования пользователя
         return Booking.objects.filter(
             user=self.request.user,
             end_date__gte=timezone.now()
@@ -471,8 +530,6 @@ class ProfileView(LoginRequiredMixin, ListView):
         context['equipment'] = {e.id: e for e in Equipment.objects.all()}
         return context
 
-
-# Бронирование услуги через JSON-запрос
 @login_required
 @csrf_exempt
 def book_service(request, service_id):
@@ -485,7 +542,6 @@ def book_service(request, service_id):
             end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
             duration_type = data.get('duration_type', 'hour')
 
-            # Проверка на пересечение с другими бронированиями
             conflicting_bookings = Booking.objects.filter(
                 service=service,
                 start_date__lt=end_date,
@@ -514,8 +570,6 @@ def book_service(request, service_id):
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
 
-
-# Создание бронирования через форму или JSON
 class BookServiceView(LoginRequiredMixin, View):
     def get(self, request):
         form = BookingForm()
@@ -557,7 +611,6 @@ class BookServiceView(LoginRequiredMixin, View):
             else:
                 raise ValueError("Не указан объект бронирования")
 
-            # Проверка на пересечение с другими бронированиями
             conflicting_bookings = Booking.objects.filter(
                 start_date__lt=end_date,
                 end_date__gt=start_date
@@ -595,81 +648,6 @@ class BookServiceView(LoginRequiredMixin, View):
 
         return redirect('profile')
 
-
-# Редактирование бронирования пользователем
-@login_required
-@require_http_methods(["POST"])
-def edit_booking(request, booking_id):
-    try:
-        # Получаем бронирование, проверяем, что пользователь имеет к нему доступ
-        booking = get_object_or_404(Booking, id=booking_id)
-        if not (request.user.is_staff or request.user.is_superuser or booking.user == request.user):
-            return JsonResponse({'success': False, 'error': 'Нет прав для редактирования'}, status=403)
-
-        # Если запрос через форму
-        if request.content_type != 'application/json':
-            start_date_str = request.POST.get('start_date')
-            end_date_str = request.POST.get('end_date')
-        else:
-            data = json.loads(request.body)
-            start_date_str = data.get('start_date')
-            end_date_str = data.get('end_date')
-
-        if not start_date_str or not end_date_str:
-            return JsonResponse({'success': False, 'error': 'Дата начала и окончания обязательны'}, status=400)
-
-        start_date = datetime.fromisoformat(
-            start_date_str.replace('Z', '+00:00') if 'Z' in start_date_str else start_date_str)
-        end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00') if 'Z' in end_date_str else end_date_str)
-
-        # Проверка на пересечение с другими бронированиями
-        conflicting_bookings = Booking.objects.filter(
-            service=booking.service,
-            equipment=booking.equipment,
-            start_date__lt=end_date,
-            end_date__gt=start_date
-        ).exclude(id=booking.id)
-        if conflicting_bookings.exists():
-            return JsonResponse({'success': False, 'error': 'Выбранное время уже занято'}, status=400)
-
-        booking.start_date = start_date
-        booking.end_date = end_date
-        booking.save()
-
-        return JsonResponse({'success': True, 'message': 'Бронирование успешно обновлено'})
-    except ValueError as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-# Страница администратора с бронированиями
-class AdminBookingsView(LoginRequiredMixin, ListView):
-    model = Booking
-    template_name = 'admin_bookings.html'
-    context_object_name = 'bookings'
-
-    def get_queryset(self):
-        # Возвращаем все бронирования
-        return Booking.objects.all()
-
-    def get_context_data(self, **kwargs):
-        # Добавляем словари услуг, оборудования и пользователей в контекст
-        context = super().get_context_data(**kwargs)
-        context['services'] = {s.id: s for s in Service.objects.all()}
-        context['equipment'] = {e.id: e for e in Equipment.objects.all()}
-        context['users'] = {u.id: u for u in CustomUser.objects.all()}
-        return context
-
-    def get(self, request, *args, **kwargs):
-        # Проверяем, что пользователь — администратор
-        if not (request.user.is_staff or request.user.is_superuser):
-            messages.warning(request, 'Доступ запрещен')
-            return redirect('home')
-        return super().get(request, *args, **kwargs)
-
-
-# Создание новой цены
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_price(request):
@@ -689,8 +667,6 @@ def create_price(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-
-# Обновление цены
 @csrf_exempt
 @require_http_methods(["PUT"])
 def update_price(request, pk):
@@ -711,8 +687,6 @@ def update_price(request, pk):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-
-# Удаление цены
 @csrf_exempt
 @require_http_methods(["POST"])
 def delete_price(request, pk):
