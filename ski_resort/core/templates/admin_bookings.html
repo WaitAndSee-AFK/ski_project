@@ -1,32 +1,42 @@
 {% extends "base.html" %}
 {% block content %}
-<!-- Стили для страницы бронирований -->
+<!-- Стили для страницы -->
 <style>
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
         padding: 0;
-        background-color: white;
-        color: #343a40;
-        line-height: 1.6;
+        background-color: #f4f4f4;
+        color: #333;
     }
 
     .container {
-        width: 100%;
-        max-width: 1600px;
+        width: 90%;
+        max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
-        margin-top: 80px;
+        margin-top: 60px;
+    }
+
+    h1 {
+        color: #1e90ff;
+        text-align: center;
+        margin-bottom: 30px;
     }
 
     .booking-table {
         width: 100%;
         border-collapse: collapse;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         border-radius: 8px;
         overflow: hidden;
-        margin-bottom: 40px;
-        background-color: white;
+    }
+
+    .booking-table th, .booking-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
     }
 
     .booking-table thead {
@@ -34,92 +44,55 @@
         color: white;
     }
 
-    .booking-table th, .booking-table td {
-        padding: 16px 20px;
-        text-align: left;
-        border-bottom: 1px solid #f0f0f0;
-        font-size: 16px;
-    }
-
-    .booking-table th {
-        font-weight: 600;
-    }
-
     .booking-table tbody tr:hover {
         background-color: #f8f9fa;
     }
 
-    h1 {
-        color: #1e90ff;
-        text-align: center;
-        margin-bottom: 30px;
-        font-size: 2.2rem;
-    }
-
     .no-bookings {
         text-align: center;
-        color: #6c757d;
         padding: 20px;
-        background-color: #f8f9fa;
+        background-color: white;
         border-radius: 8px;
-        margin-bottom: 30px;
-    }
-
-    .action-cell {
-        display: flex;
-        gap: 10px;
+        color: #666;
     }
 
     .btn {
-        padding: 12px 24px;
+        padding: 8px 16px;
         border: none;
-        border-radius: 6px;
+        border-radius: 4px;
         cursor: pointer;
         font-weight: 500;
-        transition: all 0.3s ease;
-        font-size: 15px;
-        min-width: 120px;
+        color: white;
         text-align: center;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        display: inline-block;
+        margin: 0 5px;
     }
 
     .btn-create {
         background-color: #28a745;
-        color: white;
         margin-bottom: 20px;
     }
 
     .btn-edit {
         background-color: #4CAF50;
-        color: white;
-        min-width: 100px;
     }
 
     .btn-delete {
         background-color: #f44336;
-        color: white;
-        min-width: 100px;
     }
 
     .btn-cancel {
         background-color: #6c757d;
-        color: white;
     }
 
     .btn-save {
         background-color: #1e90ff;
-        color: white;
     }
 
     .btn:hover {
         opacity: 0.9;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
 
-    /* Модальные окна */
     .modal {
         display: none;
         position: fixed;
@@ -129,52 +102,35 @@
         width: 100%;
         height: 100%;
         background-color: rgba(0,0,0,0.5);
-        animation: fadeIn 0.3s;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
     }
 
     .modal-content {
         background-color: white;
-        margin: 5% auto;
-        padding: 30px;
-        border-radius: 10px;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 8px;
         width: 90%;
         max-width: 500px;
-        box-shadow: 0 5px 25px rgba(0,0,0,0.2);
-        animation: slideDown 0.3s;
-    }
-
-    @keyframes slideDown {
-        from { transform: translateY(-50px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     }
 
     .modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 25px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #eee;
+        margin-bottom: 20px;
     }
 
     .modal-title {
         font-size: 1.5em;
         color: #1e90ff;
         margin: 0;
-        font-weight: 600;
     }
 
     .close {
         color: #aaa;
-        font-size: 28px;
-        font-weight: bold;
+        font-size: 24px;
         cursor: pointer;
-        transition: color 0.2s;
     }
 
     .close:hover {
@@ -182,83 +138,39 @@
     }
 
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
 
     .form-group label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
         font-weight: 500;
-        color: #495057;
     }
 
     .form-group input, .form-group select {
         width: 100%;
-        padding: 12px;
+        padding: 8px;
         border: 1px solid #ddd;
-        border-radius: 6px;
+        border-radius: 4px;
         box-sizing: border-box;
-        font-size: 15px;
-        transition: border-color 0.3s;
     }
 
-    .form-group input:focus, .form-group select:focus {
-        border-color: #1e90ff;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.1);
-    }
-
-    .form-group input[readonly], .form-group select[readonly] {
+    .form-group input[readonly] {
         background-color: #e9ecef;
-        cursor: not-allowed;
     }
 
     .modal-footer {
         display: flex;
         justify-content: flex-end;
-        gap: 15px;
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #eee;
-    }
-
-    @media (max-width: 768px) {
-        .container {
-            padding: 15px;
-            margin-top: 70px;
-        }
-
-        .booking-table th, .booking-table td {
-            padding: 10px;
-            font-size: 0.9em;
-        }
-
-        .action-cell {
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .btn {
-            min-width: 100%;
-            padding: 10px;
-            font-size: 14px;
-        }
-
-        .modal-content {
-            margin: 15% auto;
-            width: 95%;
-            padding: 20px;
-        }
+        gap: 10px;
+        margin-top: 20px;
     }
 </style>
 
-<!-- Основной контейнер для отображения бронирований -->
 <div class="container">
     <h1>Бронирования</h1>
 
-    {% if user.is_staff or user.is_superuser %}
-        <button class="btn btn-create" onclick="openCreateModal()">Создать бронирование</button>
-    {% endif %}
+    <button class="btn btn-create" onclick="openCreateModal()">Создать бронирование</button>
 
     {% if bookings %}
         <table class="booking-table">
@@ -270,9 +182,7 @@
                     <th>Дата начала</th>
                     <th>Дата окончания</th>
                     <th>Тип длительности</th>
-                    {% if user.is_staff or user.is_superuser %}
                     <th>Действия</th>
-                    {% endif %}
                 </tr>
             </thead>
             <tbody id="bookingTableBody">
@@ -280,23 +190,19 @@
                     <tr data-booking-id="{{ booking.id }}"
                         data-user-id="{{ booking.user.id }}"
                         data-service-id="{{ booking.service.id|default:'—' }}"
-                        data-equipment-id="{{ booking.equipment.id|default:'—' }}">
+                        data-equipment-id="{{ booking.equipment.id|default:'—' }}"
+                        data-start-date="{{ booking.start_date|date:'Y-m-d H:i'|default:'—' }}"
+                        data-end-date="{{ booking.end_date|date:'Y-m-d H:i'|default:'—' }}">
                         <td data-user-phone="{{ booking.user.phone_number|default:'—' }}">{{ booking.user.phone_number|default:"—" }}</td>
                         <td data-service-name="{{ booking.service.name|default:'—' }}">{{ booking.service.name|default:"—" }}</td>
                         <td data-equipment-name="{{ booking.equipment.name|default:'—' }}">{{ booking.equipment.name|default:"—" }}</td>
-                        <td data-start-date="{{ booking.start_date|date:'Y-m-d H:i'|default:'—' }}">{{ booking.start_date|date:"d.m.Y H:i"|default:"—" }}</td>
-                        <td data-end-date="{{ booking.end_date|date:'Y-m-d H:i'|default:'—' }}">{{ booking.end_date|date:"d.m.Y H:i"|default:"—" }}</td>
-                        <td data-duration-type="{{ booking.get_duration_type_display|default:'—' }}">{{ booking.get_duration_type_display|default:"—" }}</td>
-                        {% if user.is_staff or user.is_superuser %}
-                        <td class="action-cell">
-                            <button class="btn btn-edit" onclick="openEditModal({{ booking.id }})">
-                                <i class="fas fa-edit"></i> Изменить
-                            </button>
-                            <button class="btn btn-delete" onclick="confirmDelete({{ booking.id }})">
-                                <i class="fas fa-trash-alt"></i> Отменить
-                            </button>
+                        <td>{{ booking.start_date|date:"d.m.Y H:i"|default:"—" }}</td>
+                        <td>{{ booking.end_date|date:"d.m.Y H:i"|default:"—" }}</td>
+                        <td>{{ booking.get_duration_type_display|default:"—" }}</td>
+                        <td>
+                            <button class="btn btn-edit" onclick="openEditModal({{ booking.id }})">Изменить</button>
+                            <button class="btn btn-delete" onclick="deleteBooking({{ booking.id }})">Удалить</button>
                         </td>
-                        {% endif %}
                     </tr>
                 {% endfor %}
             </tbody>
@@ -308,65 +214,11 @@
     {% endif %}
 </div>
 
-<!-- Модальное окно для редактирования -->
-<div id="bookingModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title" id="modalTitle">Редактировать бронирование</h3>
-            <span class="close" onclick="closeModal()">×</span>
-        </div>
-        <form id="bookingForm">
-            {% csrf_token %}
-            <input type="hidden" id="bookingId" name="booking_id">
-            <input type="hidden" id="user" name="user">
-            <div class="form-group">
-                <label for="user_display">Пользователь:</label>
-                <input type="text" id="user_display" readonly>
-            </div>
-            <div class="form-group">
-                <label for="service">Услуга:</label>
-                <select id="service" name="service" required onchange="updateEquipmentOptions()">
-                    <option value="">Выберите услугу</option>
-                    {% for service in services %}
-                        <option value="{{ service.id }}">{{ service.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="equipment">Оборудование:</label>
-                <select id="equipment" name="equipment">
-                    <option value="">Без оборудования</option>
-                    <!-- Оборудование будет загружаться динамически -->
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="start_date">Дата начала:</label>
-                <input type="datetime-local" id="start_date" name="start_date" required onchange="updateEndDate(); updateAvailability();">
-            </div>
-            <div class="form-group">
-                <label for="duration_type">Тип длительности:</label>
-                <select id="duration_type" name="duration_type" required onchange="updateEndDate(); updateAvailability();">
-                    <option value="hour">Час</option>
-                    <option value="day">День</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="end_date">Дата окончания:</label>
-                <input type="datetime-local" id="end_date" name="end_date" readonly required>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-cancel" onclick="closeModal()">Отмена</button>
-                <button type="submit" class="btn btn-save">Сохранить</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <!-- Модальное окно для создания бронирования -->
 <div id="createBookingModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title" id="createModalTitle">Создать бронирование</h3>
+            <h3 class="modal-title">Создать бронирование</h3>
             <span class="close" onclick="closeCreateModal()">×</span>
         </div>
         <form id="createBookingForm">
@@ -388,21 +240,20 @@
                         <option value="{{ service.id }}">{{ service.name }}</option>
                     {% endfor %}
                 </select>
-           div>
+            </div>
             <div class="form-group">
                 <label for="create_equipment">Оборудование:</label>
                 <select id="create_equipment" name="equipment">
                     <option value="">Без оборудования</option>
-                    <!-- Оборудование будет загружаться динамически -->
                 </select>
             </div>
             <div class="form-group">
                 <label for="create_start_date">Дата начала:</label>
-                <input type="datetime-local" id="create_start_date" name="start_date" required onchange="updateCreateEndDate(); updateCreateAvailability();">
+                <input type="datetime-local" id="create_start_date" name="start_date" required onchange="updateCreateEndDate(); updateCreateEquipmentOptions()">
             </div>
             <div class="form-group">
                 <label for="create_duration_type">Тип длительности:</label>
-                <select id="create_duration_type" name="duration_type" required onchange="updateCreateEndDate(); updateCreateAvailability();">
+                <select id="create_duration_type" name="duration_type" required onchange="updateCreateEndDate(); updateCreateEquipmentOptions()">
                     <option value="hour">Час</option>
                     <option value="day">День</option>
                 </select>
@@ -419,505 +270,365 @@
     </div>
 </div>
 
+<!-- Модальное окно для редактирования -->
+<div id="editBookingModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Редактировать бронирование</h3>
+            <span class="close" onclick="closeEditModal()">&times;</span>
+        </div>
+        <form id="editBookingForm">
+            {% csrf_token %}
+            <input type="hidden" id="edit_booking_id" name="booking_id">
+            <div class="form-group">
+                <label for="edit_user">Пользователь:</label>
+                <input type="hidden" id="edit_user" name="user">
+                <input type="text" id="edit_user_display" readonly>
+            </div>
+            <div class="form-group">
+                <label for="edit_service">Услуга:</label>
+                <select id="edit_service" name="service" required onchange="updateEditEquipmentOptions()">
+                    <option value="">Выберите услугу</option>
+                    {% for service in services %}
+                        <option value="{{ service.id }}">{{ service.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit_equipment">Оборудование:</label>
+                <select id="edit_equipment" name="equipment">
+                    <option value="">Без оборудования</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit_start_date">Дата начала:</label>
+                <input type="datetime-local" id="edit_start_date" name="start_date" required onchange="updateEditEndDate()">
+            </div>
+            <div class="form-group">
+                <label for="edit_duration_type">Тип длительности:</label>
+                <select id="edit_duration_type" name="duration_type" required onchange="updateEditEndDate()">
+                    <option value="hour">Час</option>
+                    <option value="day">День</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit_end_date">Дата окончания:</label>
+                <input type="datetime-local" id="edit_end_date" name="end_date" readonly required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Отмена</button>
+                <button type="submit" class="btn btn-save">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-    let bookingsData = [
-        {% for booking in bookings %}
-            {
-                id: {{ booking.id }},
-                service_id: {{ booking.service.id|default:'null' }},
-                equipment_id: {{ booking.equipment.id|default:'null' }},
-                start_date: "{{ booking.start_date|date:'Y-m-d H:i'|default:'—' }}",
-                end_date: "{{ booking.end_date|date:'Y-m-d H:i'|default:'—' }}"
-            }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ];
+// Открытие модального окна для создания
+function openCreateModal() {
+    console.log('Открытие модального окна для создания бронирования');
+    const modal = document.getElementById('createBookingModal');
+    const form = document.getElementById('createBookingForm');
+    form.reset();
+    document.getElementById('create_equipment').innerHTML = '<option value="">Без оборудования</option>';
+    modal.style.display = 'block';
+}
 
-    const servicesData = {
-        {% for service in services %}
-            "{{ service.id }}": "{{ service.name }}"{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    };
+// Закрытие модального окна для создания
+function closeCreateModal() {
+    document.getElementById('createBookingModal').style.display = 'none';
+}
 
-    const equipmentData = {
-        "": "—",
-        {% for equip in equipment %}
-            "{{ equip.id }}": {
-                name: "{{ equip.name }}",
-                service_ids: [{% for s in services %}{% if equip in s.equipment.all %}"{{ s.id }}",{% endif %}{% endfor %}]
-            }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    };
+// Обновление даты окончания для создания
+function updateCreateEndDate() {
+    const startDateInput = document.getElementById('create_start_date');
+    const durationTypeSelect = document.getElementById('create_duration_type');
+    const endDateInput = document.getElementById('create_end_date');
 
-    const usersData = {
-        {% for u in users %}
-            "{{ u.id }}": "{{ u.phone_number }}"{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    };
-</script>
+    if (startDateInput.value && durationTypeSelect.value) {
+        const startDate = new Date(startDateInput.value);
+        let endDate;
 
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-<script>
-    let currentBookingId = null;
-
-    // Загрузка доступного оборудования
-    async function loadEquipment(serviceId, equipmentSelect, selectedEquipmentId = '') {
-        try {
-            const response = await fetch('/get_available_equipment/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}',
-                },
-                body: JSON.stringify({ service_id: serviceId })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                equipmentSelect.innerHTML = '<option value="">Без оборудования</option>';
-                data.equipment.forEach(equip => {
-                    const option = document.createElement('option');
-                    option.value = equip.id;
-                    option.text = equip.name;
-                    equipmentSelect.appendChild(option);
-                });
-                equipmentSelect.value = selectedEquipmentId;
-            } else {
-                console.error('Ошибка загрузки оборудования:', data.error);
-            }
-        } catch (error) {
-            console.error('Ошибка:', error);
-        }
-    }
-
-    // Открытие модального окна для редактирования
-    async function openEditModal(bookingId) {
-        const modal = document.getElementById('bookingModal');
-        const title = document.getElementById('modalTitle');
-        const row = document.querySelector(`tr[data-booking-id="${bookingId}"]`);
-
-        if (!row) {
-            alert('Ошибка: бронирование не найдено');
-            return;
-        }
-
-        currentBookingId = bookingId;
-        title.textContent = 'Редактировать бронирование';
-        document.getElementById('bookingId').value = bookingId;
-
-        const userId = row.getAttribute('data-user-id');
-        const userPhone = row.querySelector('[data-user-phone]').getAttribute('data-user-phone');
-        document.getElementById('user').value = userId;
-        document.getElementById('user_display').value = userPhone;
-
-        const serviceId = row.getAttribute('data-service-id');
-        const serviceSelect = document.getElementById('service');
-        serviceSelect.value = serviceId !== '—' ? serviceId : '';
-
-        const equipmentId = row.getAttribute('data-equipment-id');
-        const equipmentSelect = document.getElementById('equipment');
-        await loadEquipment(serviceId, equipmentSelect, equipmentId);
-
-        const startDate = row.querySelector('[data-start-date]').getAttribute('data-start-date');
-        const startDateInput = document.getElementById('start_date');
-        if (startDate && startDate !== '—') {
-            const [date, time] = startDate.split(' ');
-            const formattedDate = `${date}T${time}`;
-            startDateInput.value = formattedDate;
+        if (durationTypeSelect.value === 'hour') {
+            endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
         } else {
-            startDateInput.value = '';
+            endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
         }
 
-        const durationType = row.querySelector('[data-duration-type]').getAttribute('data-duration-type');
-        const durationTypeSelect = document.getElementById('duration_type');
-        durationTypeSelect.value = durationType === 'Час' ? 'hour' : 'day';
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, '0');
+        const day = String(endDate.getDate()).padStart(2, '0');
+        const hours = String(endDate.getHours()).padStart(2, '0');
+        const minutes = String(endDate.getMinutes()).padStart(2, '0');
+        endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    } else {
+        endDateInput.value = '';
+    }
+}
 
-        const endDate = row.querySelector('[data-end-date]').getAttribute('data-end-date');
-        const endDateInput = document.getElementById('end_date');
-        if (endDate && endDate !== '—') {
-            const [date, time] = endDate.split(' ');
-            const formattedDate = `${date}T${time}`;
-            endDateInput.value = formattedDate;
-        } else {
-            endDateInput.value = '';
-        }
+// Обновление списка оборудования для создания
+async function updateCreateEquipmentOptions() {
+    const serviceSelect = document.getElementById('create_service');
+    const equipmentSelect = document.getElementById('create_equipment');
+    const startDateInput = document.getElementById('create_start_date');
+    const endDateInput = document.getElementById('create_end_date');
 
-        updateAvailability();
-        modal.style.display = 'block';
+    console.log('Обновление списка оборудования');
+    console.log('Выбранная услуга:', serviceSelect.value);
+    console.log('Дата начала:', startDateInput.value);
+    console.log('Дата окончания:', endDateInput.value);
+
+    equipmentSelect.innerHTML = '<option value="">Без оборудования</option>';
+
+    if (!serviceSelect.value || !startDateInput.value || !endDateInput.value) {
+        console.log('Не все данные заполнены для загрузки оборудования');
+        return;
     }
 
-    // Открытие модального окна для создания
-    async function openCreateModal() {
-        const modal = document.getElementById('createBookingModal');
-        document.getElementById('createBookingForm').reset();
-        const equipmentSelect = document.getElementById('create_equipment');
-        equipmentSelect.innerHTML = '<option value="">Без оборудования</option>';
-        modal.style.display = 'block';
-    }
-
-    // Остальные функции (закрытие модалок, обновление дат и т.д.) остаются без изменений
-    function closeModal() {
-        document.getElementById('bookingModal').style.display = 'none';
-        document.getElementById('bookingForm').reset();
-        currentBookingId = null;
-    }
-
-    function closeCreateModal() {
-        document.getElementById('createBookingModal').style.display = 'none';
-        document.getElementById('createBookingForm').reset();
-    }
-
-    function updateEndDate() {
-        const startDateInput = document.getElementById('start_date');
-        const durationTypeSelect = document.getElementById('duration_type');
-        const endDateInput = document.getElementById('end_date');
-
-        if (startDateInput.value && durationTypeSelect.value) {
-            const startDate = new Date(startDateInput.value);
-            let endDate;
-
-            if (durationTypeSelect.value === 'hour') {
-                endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-            } else {
-                endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-            }
-
-            const year = endDate.getFullYear();
-            const month = String(endDate.getMonth() + 1).padStart(2, '0');
-            const day = String(endDate.getDate()).padStart(2, '0');
-            const hours = String(endDate.getHours()).padStart(2, '0');
-            const minutes = String(endDate.getMinutes()).padStart(2, '0');
-            endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-        } else {
-            endDateInput.value = '';
-        }
-    }
-
-    function updateCreateEndDate() {
-        const startDateInput = document.getElementById('create_start_date');
-        const durationTypeSelect = document.getElementById('create_duration_type');
-        const endDateInput = document.getElementById('create_end_date');
-
-        if (startDateInput.value && durationTypeSelect.value) {
-            const startDate = new Date(startDateInput.value);
-            let endDate;
-
-            if (durationTypeSelect.value === 'hour') {
-                endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-            } else {
-                endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-            }
-
-            const year = endDate.getFullYear();
-            const month = String(endDate.getMonth() + 1).padStart(2, '0');
-            const day = String(endDate.getDate()).padStart(2, '0');
-            const hours = String(endDate.getHours()).padStart(2, '0');
-            const minutes = String(endDate.getMinutes()).padStart(2, '0');
-            endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-        } else {
-            endDateInput.value = '';
-        }
-    }
-
-    async function updateAvailability() {
-        const startDateInput = document.getElementById('start_date');
-        const endDateInput = document.getElementById('end_date');
-        const serviceSelect = document.getElementById('service');
-        const equipmentSelect = document.getElementById('equipment');
-
-        if (!startDateInput.value || !endDateInput.value) return;
-
-        const startDate = startDateInput.value;
-        const endDate = endDateInput.value;
-
-        try {
-            const response = await fetch('/get_available_services_and_equipment/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}',
-                },
-                body: JSON.stringify({
-                    start_date: startDate,
-                    end_date: endDate,
-                    exclude_booking_id: currentBookingId
-                })
-            });
-
-            const data = await response.json();
-            if (!data.success) {
-                alert('Ошибка при получении доступных услуг и оборудования');
-                return;
-            }
-
-            const currentServiceId = serviceSelect.value;
-            serviceSelect.innerHTML = '<option value="">Выберите услугу</option>';
-            data.services.forEach(service => {
-                const option = document.createElement('option');
-                option.value = service.id;
-                option.text = service.name;
-                serviceSelect.appendChild(option);
-            });
-            serviceSelect.value = data.services.some(s => s.id == currentServiceId) ? currentServiceId : '';
-
-            await loadEquipment(serviceSelect.value, equipmentSelect, equipmentSelect.value);
-        } catch (error) {
-            console.error('Error fetching availability:', error);
-            alert('Произошла ошибка при обновлении доступности');
-        }
-    }
-
-    async function updateCreateAvailability() {
-        const startDateInput = document.getElementById('create_start_date');
-        const endDateInput = document.getElementById('create_end_date');
-        const serviceSelect = document.getElementById('create_service');
-        const equipmentSelect = document.getElementById('create_equipment');
-
-        if (!startDateInput.value || !endDateInput.value) return;
-
-        const startDate = startDateInput.value;
-        const endDate = endDateInput.value;
-
-        try {
-            const response = await fetch('/get_available_services_and_equipment/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}',
-                },
-                body: JSON.stringify({
-                    start_date: startDate,
-                    end_date: endDate,
-                    exclude_booking_id: null
-                })
-            });
-
-            const data = await response.json();
-            if (!data.success) {
-                alert('Ошибка при получении доступных услуг и оборудования');
-                return;
-            }
-
-            const currentServiceId = serviceSelect.value;
-            serviceSelect.innerHTML = '<option value="">Выберите услугу</option>';
-            data.services.forEach(service => {
-                const option = document.createElement('option');
-                option.value = service.id;
-                option.text = service.name;
-                serviceSelect.appendChild(option);
-            });
-            serviceSelect.value = data.services.some(s => s.id == currentServiceId) ? currentServiceId : '';
-
-            await loadEquipment(serviceSelect.value, equipmentSelect, equipmentSelect.value);
-        } catch (error) {
-            console.error('Error fetching availability:', error);
-            alert('Произошла ошибка при обновлении доступности');
-        }
-    }
-
-    async function updateEquipmentOptions() {
-        const serviceSelect = document.getElementById('service');
-        const equipmentSelect = document.getElementById('equipment');
-        await loadEquipment(serviceSelect.value, equipmentSelect, equipmentSelect.value);
-    }
-
-    async function updateCreateEquipmentOptions() {
-        const serviceSelect = document.getElementById('create_service');
-        const equipmentSelect = document.getElementById('create_equipment');
-        await loadEquipment(serviceSelect.value, equipmentSelect, equipmentSelect.value);
-    }
-
-    function formatDateForDisplay(dateStr) {
-        if (!dateStr || dateStr === '—') return '—';
-        const date = new Date(dateStr);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${day}.${month}.${year} ${hours}:${minutes}`;
-    }
-
-    function updateTableRow(bookingId, updatedData) {
-        const row = document.querySelector(`tr[data-booking-id="${bookingId}"]`);
-        if (!row) return;
-
-        row.setAttribute('data-service-id', updatedData.service || '—');
-        row.setAttribute('data-equipment-id', updatedData.equipment || '—');
-        row.setAttribute('data-user-id', updatedData.user || '—');
-
-        row.querySelector('[data-user-phone]').textContent = usersData[updatedData.user] || '—';
-        row.querySelector('[data-service-name]').textContent = servicesData[updatedData.service] || '—';
-        row.querySelector('[data-equipment-name]').textContent = updatedData.equipment && equipmentData[updatedData.equipment] ? equipmentData[updatedData.equipment].name : '—';
-        row.querySelector('[data-start-date]').setAttribute('data-start-date', updatedData.start_date || '—');
-        row.querySelector('[data-start-date]').textContent = formatDateForDisplay(updatedData.start_date);
-        row.querySelector('[data-end-date]').setAttribute('data-end-date', updatedData.end_date || '—');
-        row.querySelector('[data-end-date]').textContent = formatDateForDisplay(updatedData.end_date);
-        row.querySelector('[data-duration-type]').textContent = updatedData.duration_type === 'hour' ? 'Час' : 'День';
-    }
-
-    function addTableRow(bookingData) {
-        const tbody = document.getElementById('bookingTableBody');
-        const tr = document.createElement('tr');
-        tr.setAttribute('data-booking-id', bookingData.id);
-        tr.setAttribute('data-user-id', bookingData.user);
-        tr.setAttribute('data-service-id', bookingData.service || '—');
-        tr.setAttribute('data-equipment-id', bookingData.equipment || '—');
-
-        const userPhone = usersData[bookingData.user] || '—';
-        const serviceName = servicesData[bookingData.service] || '—';
-        const equipmentName = bookingData.equipment && equipmentData[bookingData.equipment] ? equipmentData[bookingData.equipment].name : '—';
-        const startDate = formatDateForDisplay(bookingData.start_date);
-        const endDate = formatDateForDisplay(bookingData.end_date);
-        const durationType = bookingData.duration_type === 'hour' ? 'Час' : 'День';
-
-        tr.innerHTML = `
-            <td data-user-phone="${userPhone}">${userPhone}</td>
-            <td data-service-name="${serviceName}">${serviceName}</td>
-            <td data-equipment-name="${equipmentName}">${equipmentName}</td>
-            <td data-start-date="${bookingData.start_date || '—'}">${startDate}</td>
-            <td data-end-date="${bookingData.end_date || '—'}">${endDate}</td>
-            <td data-duration-type="${durationType}">${durationType}</td>
-            <td class="action-cell">
-                <button class="btn btn-edit" onclick="openEditModal(${bookingData.id})">
-                    <i class="fas fa-edit"></i> Изменить
-                </button>
-                <button class="btn btn-delete" onclick="confirmDelete(${bookingData.id})">
-                    <i class="fas fa-trash-alt"></i> Отменить
-                </button>
-            </td>
-        `;
-
-        tbody.appendChild(tr);
-        bookingsData.push({
-            id: bookingData.id,
-            service_id: bookingData.service || null,
-            equipment_id: bookingData.equipment || null,
-            start_date: bookingData.start_date,
-            end_date: bookingData.end_date
+    try {
+        console.log('Отправка запроса на /get_available_equipment/');
+        const response = await fetch('/get_available_equipment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({
+                service_id: serviceSelect.value,
+                start_date: startDateInput.value,
+                end_date: endDateInput.value,
+                exclude_booking_id: null
+            })
         });
-    }
 
-    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
+        const data = await response.json();
+        console.log('Ответ от сервера:', data);
 
-        const formData = new FormData(this);
-        const bookingId = formData.get('booking_id');
-        const url = `/edit_booking/${bookingId}/`;
-
-        const updatedData = {
-            user: formData.get('user'),
-            service: formData.get('service'),
-            equipment: formData.get('equipment') || null,
-            start_date: formData.get('start_date'),
-            duration_type: formData.get('duration_type'),
-            end_date: formData.get('end_date')
-        };
-
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updatedData)
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                updateTableRow(bookingId, updatedData);
-                bookingsData = bookingsData.map(booking =>
-                    booking.id === parseInt(bookingId) ? {
-                        id: booking.id,
-                        service_id: updatedData.service || null,
-                        equipment_id: updatedData.equipment || null,
-                        start_date: updatedData.start_date,
-                        end_date: updatedData.end_date
-                    } : booking
-                );
-                closeModal();
-            } else {
-                alert(data.error || 'Ошибка при сохранении');
+        if (data.success) {
+            if (data.equipment.length === 0) {
+                console.log('Сервер вернул пустой список оборудования');
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Произошла ошибка при сохранении');
-        }
-    });
-
-    document.getElementById('createBookingForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        const formData = new FormData(this);
-        const url = '/create_booking/';
-
-        const newData = {
-            user: formData.get('user'),
-            service: formData.get('service'),
-            equipment: formData.get('equipment') || null,
-            start_date: formData.get('start_date'),
-            duration_type: formData.get('duration_type'),
-            end_date: formData.get('end_date')
-        };
-
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newData)
+            data.equipment.forEach(equip => {
+                const option = document.createElement('option');
+                option.value = equip.id;
+                option.textContent = equip.name;
+                equipmentSelect.appendChild(option);
             });
-
-            const data = await response.json();
-            if (data.success) {
-                newData.id = data.booking_id;
-                addTableRow(newData);
-                closeCreateModal();
-            } else {
-                alert(data.error || 'Ошибка при создании');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Произошла ошибка при создании');
+        } else {
+            console.error('Ошибка от сервера:', data.error);
+            alert('Ошибка загрузки оборудования: ' + data.error);
         }
-    });
-
-    function confirmDelete(bookingId) {
-        if (confirm('Вы уверены, что хотите отменить это бронирование?')) {
-            fetch(`/cancel_booking/${bookingId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => {
-                if (response.ok) {
-                    const row = document.querySelector(`tr[data-booking-id="${bookingId}"]`);
-                    if (row) row.remove();
-                    bookingsData = bookingsData.filter(booking => booking.id !== bookingId);
-                } else {
-                    alert('Ошибка при отмене бронирования');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Произошла ошибка при отмене бронирования');
-            });
-        }
+    } catch (error) {
+        console.error('Ошибка запроса:', error);
+        alert('Произошла ошибка при загрузке оборудования: ' + error.message);
     }
+}
 
-    window.onclick = function(event) {
-        const editModal = document.getElementById('bookingModal');
-        const createModal = document.getElementById('createBookingModal');
-        if (event.target === editModal) {
-            closeModal();
-        }
-        if (event.target === createModal) {
-            closeCreateModal();
-        }
+// Обработка формы создания
+document.getElementById('createBookingForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = {
+        user: formData.get('user'),
+        service: formData.get('service'),
+        equipment: formData.get('equipment') || null,
+        start_date: formData.get('start_date'),
+        duration_type: formData.get('duration_type'),
+        end_date: formData.get('end_date')
     };
+
+    console.log('Отправка данных для создания бронирования:', data);
+
+    try {
+        const response = await fetch('/create_booking/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        console.log('Результат создания бронирования:', result);
+
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Ошибка: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Ошибка при создании бронирования:', error);
+        alert('Произошла ошибка: ' + error.message);
+    }
+});
+
+// Открытие модального окна для редактирования
+function openEditModal(bookingId) {
+    console.log('Открытие модального окна для редактирования бронирования ID:', bookingId);
+    const modal = document.getElementById('editBookingModal');
+    const row = document.querySelector(`tr[data-booking-id="${bookingId}"]`);
+
+    document.getElementById('edit_booking_id').value = bookingId;
+    document.getElementById('edit_user').value = row.getAttribute('data-user-id');
+    document.getElementById('edit_user_display').value = row.getAttribute('data-user-phone');
+    document.getElementById('edit_service').value = row.getAttribute('data-service-id') !== '—' ? row.getAttribute('data-service-id') : '';
+    document.getElementById('edit_equipment').innerHTML = '<option value="">Без оборудования</option>';
+    document.getElementById('edit_start_date').value = row.getAttribute('data-start-date') !== '—' ? row.getAttribute('data-start-date').replace(' ', 'T') : '';
+    document.getElementById('edit_duration_type').value = row.cells[5].textContent.trim() === 'Час' ? 'hour' : 'day';
+    updateEditEndDate();
+    updateEditEquipmentOptions();
+    modal.style.display = 'block';
+}
+
+// Закрытие модального окна для редактирования
+function closeEditModal() {
+    document.getElementById('editBookingModal').style.display = 'none';
+}
+
+// Обновление даты окончания для редактирования
+function updateEditEndDate() {
+    const startDateInput = document.getElementById('edit_start_date');
+    const durationTypeSelect = document.getElementById('edit_duration_type');
+    const endDateInput = document.getElementById('edit_end_date');
+
+    if (startDateInput.value && durationTypeSelect.value) {
+        const startDate = new Date(startDateInput.value);
+        let endDate;
+
+        if (durationTypeSelect.value === 'hour') {
+            endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+        } else {
+            endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+        }
+
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, '0');
+        const day = String(endDate.getDate()).padStart(2, '0');
+        const hours = String(endDate.getHours()).padStart(2, '0');
+        const minutes = String(endDate.getMinutes()).padStart(2, '0');
+        endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    } else {
+        endDateInput.value = '';
+    }
+}
+
+// Обновление списка оборудования для редактирования
+async function updateEditEquipmentOptions() {
+    const serviceSelect = document.getElementById('edit_service');
+    const equipmentSelect = document.getElementById('edit_equipment');
+    const startDateInput = document.getElementById('edit_start_date');
+    const endDateInput = document.getElementById('edit_end_date');
+    const bookingId = document.getElementById('edit_booking_id').value;
+
+    equipmentSelect.innerHTML = '<option value="">Без оборудования</option>';
+
+    if (!serviceSelect.value || !startDateInput.value || !endDateInput.value) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/get_available_equipment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({
+                service_id: serviceSelect.value,
+                start_date: startDateInput.value,
+                end_date: endDateInput.value,
+                exclude_booking_id: bookingId
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            data.equipment.forEach(equip => {
+                const option = document.createElement('option');
+                option.value = equip.id;
+                option.textContent = equip.name;
+                equipmentSelect.appendChild(option);
+            });
+            const equipmentId = document.querySelector(`tr[data-booking-id="${bookingId}"]`).getAttribute('data-equipment-id');
+            if (equipmentId !== '—' && Array.from(equipmentSelect.options).some(opt => opt.value === equipmentId)) {
+                equipmentSelect.value = equipmentId;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки оборудования:', error);
+    }
+}
+
+// Обработка формы редактирования
+document.getElementById('editBookingForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const bookingId = formData.get('booking_id');
+    const data = {
+        user: formData.get('user'),
+        service: formData.get('service'),
+        equipment: formData.get('equipment') || null,
+        start_date: formData.get('start_date'),
+        duration_type: formData.get('duration_type'),
+        end_date: formData.get('end_date')
+    };
+
+    try {
+        const response = await fetch(`/edit_booking/${bookingId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Ошибка: ' + result.error);
+        }
+    } catch (error) {
+        alert('Произошла ошибка: ' + error.message);
+    }
+});
+
+// Удаление бронирования
+async function deleteBooking(bookingId) {
+    if (confirm('Вы уверены, что хотите удалить это бронирование?')) {
+        try {
+            const response = await fetch(`/delete_booking/${bookingId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                }
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch (error) {
+            alert('Произошла ошибка: ' + error.message);
+        }
+    }
+}
+
+// Закрытие модальных окон при клике вне их
+window.onclick = function(event) {
+    const createModal = document.getElementById('createBookingModal');
+    const editModal = document.getElementById('editBookingModal');
+    if (event.target === createModal) {
+        closeCreateModal();
+    }
+    if (event.target === editModal) {
+        closeEditModal();
+    }
+};
 </script>
 {% endblock %}
