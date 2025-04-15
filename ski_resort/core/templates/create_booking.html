@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    :root {
+        --primary-color: #1e90ff;
+        --error-color: #f44336;
+        --border-color: #e0e0e0;
+        --text-color: #333;
+        --light-gray: #f5f5f5;
+        --white: #ffffff;
+    }
+
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: var(--light-gray);
+        color: var(--text-color);
+    }
+
+    .booking-container {
+        max-width: 500px;
+        margin: 8rem auto 2rem;
+        padding: 2rem;
+        background: var(--white);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .booking-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .booking-header h1 {
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .required-field::after {
+        content: " *";
+        color: var(--error-color);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        background-color: var(--white);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.2);
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1rem;
+    }
+
+    .form-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 1rem;
+        border: none;
+    }
+
+    .btn-cancel {
+        background-color: #f0f0f0;
+        color: #555;
+    }
+
+    .btn-cancel:hover {
+        background-color: #e0e0e0;
+    }
+
+    .btn-save {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-save:hover {
+        background-color: #187bcd;
+    }
+
+    .errorlist {
+        color: var(--error-color);
+        margin-top: 0.5rem;
+        list-style: none;
+        padding: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Убираем стандартные разделительные линии */
+    hr {
+        display: none;
+    }
+</style>
+
+<div class="booking-container">
+    <div class="booking-header">
+        <h1>Создать бронирование</h1>
+    </div>
+
+    <form method="POST" id="bookingForm" novalidate>
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_user" class="required-field">Пользователь</label>
+            <select id="id_user" name="user" class="form-control" required>
+                <option value="">Выберите пользователя</option>
+                {% for u in users %}
+                    <option value="{{ u.id }}" {% if form.user.value|stringformat:"s" == u.id|stringformat:"s" %}selected{% endif %}>
+                        {{ u.phone_number }} {% if u.first_name or u.last_name %}({{ u.first_name }} {{ u.last_name }}){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+            {% if form.user.errors %}
+                <ul class="errorlist">
+                    {% for error in form.user.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_service" class="required-field">Услуга</label>
+            <select id="id_service" name="service" class="form-control" required>
+                <option value="">Выберите услугу</option>
+                {% for service in services %}
+                    <option value="{{ service.id }}" {% if form.service.value|stringformat:"s" == service.id|stringformat:"s" %}selected{% endif %}>
+                        {{ service.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            {% if form.service.errors %}
+                <ul class="errorlist">
+                    {% for error in form.service.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_equipment">Оборудование</label>
+            <select id="id_equipment" name="equipment" class="form-control">
+                <option value="">Без оборудования</option>
+                {% for equip in equipment %}
+                    <option value="{{ equip.id }}" {% if form.equipment.value|stringformat:"s" == equip.id|stringformat:"s" %}selected{% endif %}>
+                        {{ equip.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            {% if form.equipment.errors %}
+                <ul class="errorlist">
+                    {% for error in form.equipment.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_start_date" class="required-field">Дата начала</label>
+            <input type="datetime-local" id="id_start_date" name="start_date"
+                   class="form-control" required
+                   value="{{ form.start_date.value|default_if_none:'' }}">
+            {% if form.start_date.errors %}
+                <ul class="errorlist">
+                    {% for error in form.start_date.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_duration_type" class="required-field">Тип длительности</label>
+            <select id="id_duration_type" name="duration_type" class="form-control" required>
+                <option value="hour" {% if form.duration_type.value == 'hour' %}selected{% endif %}>Час</option>
+                <option value="day" {% if form.duration_type.value == 'day' %}selected{% endif %}>День</option>
+            </select>
+            {% if form.duration_type.errors %}
+                <ul class="errorlist">
+                    {% for error in form.duration_type.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_end_date">Дата окончания</label>
+            <input type="datetime-local" id="id_end_date" name="end_date"
+                   class="form-control" readonly
+                   value="{{ form.end_date.value|default_if_none:'' }}">
+            {% if form.end_date.errors %}
+                <ul class="errorlist">
+                    {% for error in form.end_date.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-footer">
+            <a href="{% url 'booking_list' %}" class="btn btn-cancel">Отмена</a>
+            <button type="submit" class="btn btn-save">Создать бронирование</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('id_start_date');
+    const durationTypeSelect = document.getElementById('id_duration_type');
+    const endDateInput = document.getElementById('id_end_date');
+
+    // Функция для форматирования даты в локальный формат
+    function formatLocalDateTime(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    // Расчет даты окончания
+    function calculateEndDate() {
+        if (!startDateInput.value) {
+            endDateInput.value = '';
+            return;
+        }
+
+        const startDate = new Date(startDateInput.value);
+        const durationType = durationTypeSelect.value;
+        let endDate = new Date(startDate);
+
+        if (durationType === 'hour') {
+            endDate.setHours(endDate.getHours() + 1);
+        } else if (durationType === 'day') {
+            endDate.setDate(endDate.getDate() + 1);
+        }
+
+        endDateInput.value = formatLocalDateTime(endDate);
+    }
+
+    // Установка минимальной даты (текущая дата и время)
+    function setMinDateTime() {
+        const now = new Date();
+        const localDateTime = formatLocalDateTime(now);
+        startDateInput.min = localDateTime;
+
+        // Если поле пустое, установим текущее время + 1 час как значение по умолчанию
+        if (!startDateInput.value) {
+            now.setHours(now.getHours() + 1);
+            startDateInput.value = formatLocalDateTime(now);
+            calculateEndDate();
+        }
+    }
+
+    // Инициализация
+    setMinDateTime();
+
+    // Обработчики событий
+    startDateInput.addEventListener('change', calculateEndDate);
+    durationTypeSelect.addEventListener('change', calculateEndDate);
+});
+</script>
+{% endblock %}

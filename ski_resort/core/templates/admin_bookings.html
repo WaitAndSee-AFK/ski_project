@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-<!-- Стили для страницы -->
 <style>
     body {
         font-family: 'Roboto', sans-serif;
@@ -57,7 +56,7 @@
     }
 
     .btn {
-        padding: 8px 16px;
+        padding: 8px 0;
         border: none;
         border-radius: 4px;
         cursor: pointer;
@@ -65,12 +64,17 @@
         color: white;
         text-align: center;
         display: inline-block;
-        margin: 0 5px;
+        text-decoration: none;
+        width: 90px;
+        box-sizing: border-box;
+        font-size: 14px;
     }
 
     .btn-create {
         background-color: #28a745;
         margin-bottom: 20px;
+        width: auto;
+        padding: 10px 16px;
     }
 
     .btn-edit {
@@ -81,96 +85,35 @@
         background-color: #f44336;
     }
 
-    .btn-cancel {
-        background-color: #6c757d;
-    }
-
-    .btn-save {
-        background-color: #1e90ff;
-    }
-
     .btn:hover {
         opacity: 0.9;
     }
 
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.5);
-    }
-
-    .modal-content {
-        background-color: white;
-        margin: 10% auto;
-        padding: 20px;
-        border-radius: 8px;
-        width: 90%;
-        max-width: 500px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-
-    .modal-header {
+    .action-buttons {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
+        gap: 8px;
     }
 
-    .modal-title {
-        font-size: 1.5em;
-        color: #1e90ff;
+    .action-buttons form {
         margin: 0;
+        padding: 0;
+        display: inline;
     }
 
-    .close {
-        color: #aaa;
-        font-size: 24px;
-        cursor: pointer;
+    .phone-number {
+        font-family: monospace;
+        white-space: nowrap;
     }
 
-    .close:hover {
-        color: #333;
-    }
-
-    .form-group {
-        margin-bottom: 15px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
-    }
-
-    .form-group input, .form-group select {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        box-sizing: border-box;
-    }
-
-    .form-group input[readonly] {
-        background-color: #e9ecef;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 20px;
+    .no-phone {
+        color: #f44336;
     }
 </style>
 
 <div class="container">
     <h1>Бронирования</h1>
 
-    <button class="btn btn-create" onclick="openCreateModal()">Создать бронирование</button>
+    <a href="{% url 'create_booking' %}" class="btn btn-create">Создать бронирование</a>
 
     {% if bookings %}
         <table class="booking-table">
@@ -185,23 +128,29 @@
                     <th>Действия</th>
                 </tr>
             </thead>
-            <tbody id="bookingTableBody">
+            <tbody>
                 {% for booking in bookings %}
-                    <tr data-booking-id="{{ booking.id }}"
-                        data-user-id="{{ booking.user.id }}"
-                        data-service-id="{{ booking.service.id|default:'—' }}"
-                        data-equipment-id="{{ booking.equipment.id|default:'—' }}"
-                        data-start-date="{{ booking.start_date|date:'Y-m-d H:i'|default:'—' }}"
-                        data-end-date="{{ booking.end_date|date:'Y-m-d H:i'|default:'—' }}">
-                        <td data-user-phone="{{ booking.user.phone_number|default:'—' }}">{{ booking.user.phone_number|default:"—" }}</td>
-                        <td data-service-name="{{ booking.service.name|default:'—' }}">{{ booking.service.name|default:"—" }}</td>
-                        <td data-equipment-name="{{ booking.equipment.name|default:'—' }}">{{ booking.equipment.name|default:"—" }}</td>
+                    <tr>
+                        <td class="phone-number {% if not booking.user or not booking.user.phone_number %}no-phone{% endif %}">
+                            {% if booking.user and booking.user.phone_number %}
+                                {{ booking.user.phone_number }}
+                            {% else %}
+                                Не указан
+                            {% endif %}
+                        </td>
+                        <td>{{ booking.service.name|default:"—" }}</td>
+                        <td>{{ booking.equipment.name|default:"—" }}</td>
                         <td>{{ booking.start_date|date:"d.m.Y H:i"|default:"—" }}</td>
                         <td>{{ booking.end_date|date:"d.m.Y H:i"|default:"—" }}</td>
                         <td>{{ booking.get_duration_type_display|default:"—" }}</td>
                         <td>
-                            <button class="btn btn-edit" onclick="openEditModal({{ booking.id }})">Изменить</button>
-                            <button class="btn btn-delete" onclick="deleteBooking({{ booking.id }})">Удалить</button>
+                            <div class="action-buttons">
+                                <a href="{% url 'edit_booking' booking.id %}" class="btn btn-edit">Изменить</a>
+                                <form action="{% url 'delete_booking' booking.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-delete" onclick="return confirm('Вы уверены, что хотите удалить это бронирование?')">Удалить</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}
@@ -213,422 +162,4 @@
         </div>
     {% endif %}
 </div>
-
-<!-- Модальное окно для создания бронирования -->
-<div id="createBookingModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Создать бронирование</h3>
-            <span class="close" onclick="closeCreateModal()">×</span>
-        </div>
-        <form id="createBookingForm">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="create_user">Пользователь:</label>
-                <select id="create_user" name="user" required>
-                    <option value="">Выберите пользователя</option>
-                    {% for u in users %}
-                        <option value="{{ u.id }}">{{ u.phone_number }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="create_service">Услуга:</label>
-                <select id="create_service" name="service" required onchange="updateCreateEquipmentOptions()">
-                    <option value="">Выберите услугу</option>
-                    {% for service in services %}
-                        <option value="{{ service.id }}">{{ service.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="create_equipment">Оборудование:</label>
-                <select id="create_equipment" name="equipment">
-                    <option value="">Без оборудования</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="create_start_date">Дата начала:</label>
-                <input type="datetime-local" id="create_start_date" name="start_date" required onchange="updateCreateEndDate(); updateCreateEquipmentOptions()">
-            </div>
-            <div class="form-group">
-                <label for="create_duration_type">Тип длительности:</label>
-                <select id="create_duration_type" name="duration_type" required onchange="updateCreateEndDate(); updateCreateEquipmentOptions()">
-                    <option value="hour">Час</option>
-                    <option value="day">День</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="create_end_date">Дата окончания:</label>
-                <input type="datetime-local" id="create_end_date" name="end_date" readonly required>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-cancel" onclick="closeCreateModal()">Отмена</button>
-                <button type="submit" class="btn btn-save">Создать</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Модальное окно для редактирования -->
-<div id="editBookingModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Редактировать бронирование</h3>
-            <span class="close" onclick="closeEditModal()">&times;</span>
-        </div>
-        <form id="editBookingForm">
-            {% csrf_token %}
-            <input type="hidden" id="edit_booking_id" name="booking_id">
-            <div class="form-group">
-                <label for="edit_user">Пользователь:</label>
-                <input type="hidden" id="edit_user" name="user">
-                <input type="text" id="edit_user_display" readonly>
-            </div>
-            <div class="form-group">
-                <label for="edit_service">Услуга:</label>
-                <select id="edit_service" name="service" required onchange="updateEditEquipmentOptions()">
-                    <option value="">Выберите услугу</option>
-                    {% for service in services %}
-                        <option value="{{ service.id }}">{{ service.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="edit_equipment">Оборудование:</label>
-                <select id="edit_equipment" name="equipment">
-                    <option value="">Без оборудования</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="edit_start_date">Дата начала:</label>
-                <input type="datetime-local" id="edit_start_date" name="start_date" required onchange="updateEditEndDate()">
-            </div>
-            <div class="form-group">
-                <label for="edit_duration_type">Тип длительности:</label>
-                <select id="edit_duration_type" name="duration_type" required onchange="updateEditEndDate()">
-                    <option value="hour">Час</option>
-                    <option value="day">День</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="edit_end_date">Дата окончания:</label>
-                <input type="datetime-local" id="edit_end_date" name="end_date" readonly required>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Отмена</button>
-                <button type="submit" class="btn btn-save">Сохранить</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-// Открытие модального окна для создания
-function openCreateModal() {
-    console.log('Открытие модального окна для создания бронирования');
-    const modal = document.getElementById('createBookingModal');
-    const form = document.getElementById('createBookingForm');
-    form.reset();
-    document.getElementById('create_equipment').innerHTML = '<option value="">Без оборудования</option>';
-    modal.style.display = 'block';
-}
-
-// Закрытие модального окна для создания
-function closeCreateModal() {
-    document.getElementById('createBookingModal').style.display = 'none';
-}
-
-// Обновление даты окончания для создания
-function updateCreateEndDate() {
-    const startDateInput = document.getElementById('create_start_date');
-    const durationTypeSelect = document.getElementById('create_duration_type');
-    const endDateInput = document.getElementById('create_end_date');
-
-    if (startDateInput.value && durationTypeSelect.value) {
-        const startDate = new Date(startDateInput.value);
-        let endDate;
-
-        if (durationTypeSelect.value === 'hour') {
-            endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-        } else {
-            endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-        }
-
-        const year = endDate.getFullYear();
-        const month = String(endDate.getMonth() + 1).padStart(2, '0');
-        const day = String(endDate.getDate()).padStart(2, '0');
-        const hours = String(endDate.getHours()).padStart(2, '0');
-        const minutes = String(endDate.getMinutes()).padStart(2, '0');
-        endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-    } else {
-        endDateInput.value = '';
-    }
-}
-
-// Обновление списка оборудования для создания
-async function updateCreateEquipmentOptions() {
-    const serviceSelect = document.getElementById('create_service');
-    const equipmentSelect = document.getElementById('create_equipment');
-    const startDateInput = document.getElementById('create_start_date');
-    const endDateInput = document.getElementById('create_end_date');
-
-    console.log('Обновление списка оборудования');
-    console.log('Выбранная услуга:', serviceSelect.value);
-    console.log('Дата начала:', startDateInput.value);
-    console.log('Дата окончания:', endDateInput.value);
-
-    equipmentSelect.innerHTML = '<option value="">Без оборудования</option>';
-
-    if (!serviceSelect.value || !startDateInput.value || !endDateInput.value) {
-        console.log('Не все данные заполнены для загрузки оборудования');
-        return;
-    }
-
-    try {
-        console.log('Отправка запроса на /get_available_equipment/');
-        const response = await fetch('/get_available_equipment/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}',
-            },
-            body: JSON.stringify({
-                service_id: serviceSelect.value,
-                start_date: startDateInput.value,
-                end_date: endDateInput.value,
-                exclude_booking_id: null
-            })
-        });
-
-        const data = await response.json();
-        console.log('Ответ от сервера:', data);
-
-        if (data.success) {
-            if (data.equipment.length === 0) {
-                console.log('Сервер вернул пустой список оборудования');
-            }
-            data.equipment.forEach(equip => {
-                const option = document.createElement('option');
-                option.value = equip.id;
-                option.textContent = equip.name;
-                equipmentSelect.appendChild(option);
-            });
-        } else {
-            console.error('Ошибка от сервера:', data.error);
-            alert('Ошибка загрузки оборудования: ' + data.error);
-        }
-    } catch (error) {
-        console.error('Ошибка запроса:', error);
-        alert('Произошла ошибка при загрузке оборудования: ' + error.message);
-    }
-}
-
-// Обработка формы создания
-document.getElementById('createBookingForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const data = {
-        user: formData.get('user'),
-        service: formData.get('service'),
-        equipment: formData.get('equipment') || null,
-        start_date: formData.get('start_date'),
-        duration_type: formData.get('duration_type'),
-        end_date: formData.get('end_date')
-    };
-
-    console.log('Отправка данных для создания бронирования:', data);
-
-    try {
-        const response = await fetch('/create_booking/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-        console.log('Результат создания бронирования:', result);
-
-        if (result.success) {
-            location.reload();
-        } else {
-            alert('Ошибка: ' + result.error);
-        }
-    } catch (error) {
-        console.error('Ошибка при создании бронирования:', error);
-        alert('Произошла ошибка: ' + error.message);
-    }
-});
-
-// Открытие модального окна для редактирования
-function openEditModal(bookingId) {
-    console.log('Открытие модального окна для редактирования бронирования ID:', bookingId);
-    const modal = document.getElementById('editBookingModal');
-    const row = document.querySelector(`tr[data-booking-id="${bookingId}"]`);
-
-    document.getElementById('edit_booking_id').value = bookingId;
-    document.getElementById('edit_user').value = row.getAttribute('data-user-id');
-    document.getElementById('edit_user_display').value = row.getAttribute('data-user-phone');
-    document.getElementById('edit_service').value = row.getAttribute('data-service-id') !== '—' ? row.getAttribute('data-service-id') : '';
-    document.getElementById('edit_equipment').innerHTML = '<option value="">Без оборудования</option>';
-    document.getElementById('edit_start_date').value = row.getAttribute('data-start-date') !== '—' ? row.getAttribute('data-start-date').replace(' ', 'T') : '';
-    document.getElementById('edit_duration_type').value = row.cells[5].textContent.trim() === 'Час' ? 'hour' : 'day';
-    updateEditEndDate();
-    updateEditEquipmentOptions();
-    modal.style.display = 'block';
-}
-
-// Закрытие модального окна для редактирования
-function closeEditModal() {
-    document.getElementById('editBookingModal').style.display = 'none';
-}
-
-// Обновление даты окончания для редактирования
-function updateEditEndDate() {
-    const startDateInput = document.getElementById('edit_start_date');
-    const durationTypeSelect = document.getElementById('edit_duration_type');
-    const endDateInput = document.getElementById('edit_end_date');
-
-    if (startDateInput.value && durationTypeSelect.value) {
-        const startDate = new Date(startDateInput.value);
-        let endDate;
-
-        if (durationTypeSelect.value === 'hour') {
-            endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-        } else {
-            endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-        }
-
-        const year = endDate.getFullYear();
-        const month = String(endDate.getMonth() + 1).padStart(2, '0');
-        const day = String(endDate.getDate()).padStart(2, '0');
-        const hours = String(endDate.getHours()).padStart(2, '0');
-        const minutes = String(endDate.getMinutes()).padStart(2, '0');
-        endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-    } else {
-        endDateInput.value = '';
-    }
-}
-
-// Обновление списка оборудования для редактирования
-async function updateEditEquipmentOptions() {
-    const serviceSelect = document.getElementById('edit_service');
-    const equipmentSelect = document.getElementById('edit_equipment');
-    const startDateInput = document.getElementById('edit_start_date');
-    const endDateInput = document.getElementById('edit_end_date');
-    const bookingId = document.getElementById('edit_booking_id').value;
-
-    equipmentSelect.innerHTML = '<option value="">Без оборудования</option>';
-
-    if (!serviceSelect.value || !startDateInput.value || !endDateInput.value) {
-        return;
-    }
-
-    try {
-        const response = await fetch('/get_available_equipment/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}',
-            },
-            body: JSON.stringify({
-                service_id: serviceSelect.value,
-                start_date: startDateInput.value,
-                end_date: endDateInput.value,
-                exclude_booking_id: bookingId
-            })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            data.equipment.forEach(equip => {
-                const option = document.createElement('option');
-                option.value = equip.id;
-                option.textContent = equip.name;
-                equipmentSelect.appendChild(option);
-            });
-            const equipmentId = document.querySelector(`tr[data-booking-id="${bookingId}"]`).getAttribute('data-equipment-id');
-            if (equipmentId !== '—' && Array.from(equipmentSelect.options).some(opt => opt.value === equipmentId)) {
-                equipmentSelect.value = equipmentId;
-            }
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки оборудования:', error);
-    }
-}
-
-// Обработка формы редактирования
-document.getElementById('editBookingForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const bookingId = formData.get('booking_id');
-    const data = {
-        user: formData.get('user'),
-        service: formData.get('service'),
-        equipment: formData.get('equipment') || null,
-        start_date: formData.get('start_date'),
-        duration_type: formData.get('duration_type'),
-        end_date: formData.get('end_date')
-    };
-
-    try {
-        const response = await fetch(`/edit_booking/${bookingId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-        if (result.success) {
-            location.reload();
-        } else {
-            alert('Ошибка: ' + result.error);
-        }
-    } catch (error) {
-        alert('Произошла ошибка: ' + error.message);
-    }
-});
-
-// Удаление бронирования
-async function deleteBooking(bookingId) {
-    if (confirm('Вы уверены, что хотите удалить это бронирование?')) {
-        try {
-            const response = await fetch(`/delete_booking/${bookingId}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}',
-                }
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                location.reload();
-            } else {
-                alert('Ошибка: ' + result.error);
-            }
-        } catch (error) {
-            alert('Произошла ошибка: ' + error.message);
-        }
-    }
-}
-
-// Закрытие модальных окон при клике вне их
-window.onclick = function(event) {
-    const createModal = document.getElementById('createBookingModal');
-    const editModal = document.getElementById('editBookingModal');
-    if (event.target === createModal) {
-        closeCreateModal();
-    }
-    if (event.target === editModal) {
-        closeEditModal();
-    }
-};
-</script>
 {% endblock %}

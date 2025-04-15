@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    * {
+        font-family: 'Roboto', sans-serif;
+        font-size: 16px;
+        color: #333;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+    }
+
+    .container {
+        width: 90%;
+        max-width: 500px;
+        margin: 60px auto;
+        padding: 25px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        color: #1e90ff;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .form-group input[readonly] {
+        background-color: #e9ecef;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        text-align: center;
+        display: inline-block;
+        text-decoration: none;
+    }
+
+    .btn-cancel {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-save {
+        background-color: #1e90ff;
+        color: white;
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+    }
+
+    .form-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+    .errorlist {
+        color: #f44336;
+        margin: 8px 0 0 0;
+        list-style: none;
+        padding: 0;
+        font-size: 14px;
+    }
+
+    select {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 16px;
+    }
+</style>
+
+<div class="container">
+    <h1>Редактировать бронирование</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_user">Пользователь:</label>
+            <input type="text" id="id_user_display" value="{{ booking.user.phone_number|default:'—' }}" readonly>
+            <input type="hidden" id="id_user" name="user" value="{{ booking.user.id }}">
+            {% if form.user.errors %}
+                <ul class="errorlist">
+                    {% for error in form.user.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_service">Услуга:</label>
+            <select id="id_service" name="service" required>
+                <option value="">Выберите услугу</option>
+                {% for service in services %}
+                    <option value="{{ service.id }}" {% if service.id == booking.service.id %}selected{% endif %}>{{ service.name }}</option>
+                {% endfor %}
+            </select>
+            {% if form.service.errors %}
+                <ul class="errorlist">
+                    {% for error in form.service.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_equipment">Оборудование:</label>
+            <select id="id_equipment" name="equipment">
+                <option value="">Без оборудования</option>
+                {% for equip in equipment %}
+                    <option value="{{ equip.id }}" {% if equip.id == booking.equipment.id %}selected{% endif %}>{{ equip.name }}</option>
+                {% endfor %}
+            </select>
+            {% if form.equipment.errors %}
+                <ul class="errorlist">
+                    {% for error in form.equipment.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_start_date">Дата начала:</label>
+            <input type="datetime-local" id="id_start_date" name="start_date" required value="{{ booking.start_date|date:'Y-m-d\\TH:i' }}">
+            {% if form.start_date.errors %}
+                <ul class="errorlist">
+                    {% for error in form.start_date.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_duration_type">Тип длительности:</label>
+            <select id="id_duration_type" name="duration_type" required>
+                <option value="hour" {% if booking.duration_type == 'hour' %}selected{% endif %}>Час</option>
+                <option value="day" {% if booking.duration_type == 'day' %}selected{% endif %}>День</option>
+            </select>
+            {% if form.duration_type.errors %}
+                <ul class="errorlist">
+                    {% for error in form.duration_type.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_end_date">Дата окончания:</label>
+            <input type="datetime-local" id="id_end_date" name="end_date" value="{{ booking.end_date|date:'Y-m-d\\TH:i' }}">
+            {% if form.end_date.errors %}
+                <ul class="errorlist">
+                    {% for error in form.end_date.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-footer">
+            <a href="{% url 'booking_list' %}" class="btn btn-cancel">Отмена</a>
+            <button type="submit" class="btn btn-save">Сохранить</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

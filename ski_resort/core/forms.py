@@ -4,6 +4,54 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from .models import Review, CustomUser, Booking, Service, Equipment, Role
 
+
+class BookingForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = ['user', 'service', 'equipment', 'start_date', 'duration_type']
+        widgets = {
+            'start_date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['user'].queryset = CustomUser.objects.exclude(
+            phone_number__isnull=True
+        ).exclude(
+            phone_number__exact=''
+        ).order_by('phone_number')
+
+        # Убедимся, что поле user обязательно
+        self.fields['user'].required = True
+        self.fields['service'].required = True
+        self.fields['start_date'].required = True
+        self.fields['duration_type'].required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        user = cleaned_data.get('user')
+        service = cleaned_data.get('service')
+        start_date = cleaned_data.get('start_date')
+        duration_type = cleaned_data.get('duration_type')
+
+        if not user:
+            self.add_error('user', "Необходимо выбрать пользователя")
+
+        if user and not user.phone_number:
+            self.add_error('user', "У выбранного пользователя нет номера телефона")
+
+        if not service:
+            self.add_error('service', "Необходимо выбрать услугу")
+
+        if not start_date:
+            self.add_error('start_date', "Необходимо указать дату начала")
+
+        if not duration_type:
+            self.add_error('duration_type', "Необходимо выбрать тип длительности")
+
+        return cleaned_data
+
+
 # Форма для фильтрации бронирований
 class BookingFilterForm(forms.Form):
     service = forms.ModelChoiceField(
