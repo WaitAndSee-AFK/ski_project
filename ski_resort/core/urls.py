@@ -18,14 +18,14 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('register/', views.RegisterView.as_view(), name='register'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
-    path('bookings_admin/', views.bookings_view, name='bookings_admin'),  # Заменили AdminBookingsView на bookings_view
-    path('bookings/', views.bookings_view, name='bookings'),
-    path('edit_booking/<int:booking_id>/', views.edit_booking, name='edit_booking'),
-    path('delete_booking/<int:booking_id>/', views.delete_booking, name='delete_booking'),  # Заменили cancel_booking на delete_booking
-    path('create_booking/', views.create_booking, name='create_booking'),  # Добавили маршрут для создания бронирования
+    path('bookings_admin/', views.bookings_view, name='bookings_admin'),
     path('prices/create/', views.create_price, name='create_price'),
     path('prices/update/<int:pk>/', views.update_price, name='update_price'),
     path('prices/delete/<int:pk>/', views.delete_price, name='delete_price'),
     path('get_available_services/', views.get_available_services, name='get_available_services'),
     path('get_available_equipment/', views.get_available_equipment, name='get_available_equipment'),
+    path('bookings/', views.booking_list, name='booking_list'),
+    path('bookings/create/', views.create_booking, name='create_booking'),
+    path('bookings/edit/<int:booking_id>/', views.edit_booking, name='edit_booking'),
+    path('bookings/delete/<int:booking_id>/', views.delete_booking, name='delete_booking'),
 ]
