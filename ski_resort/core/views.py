@@ -114,7 +114,6 @@ def booking_list(request):
     })
 
 
-import logging
 logger = logging.getLogger(__name__)
 
 def create_booking(request):
