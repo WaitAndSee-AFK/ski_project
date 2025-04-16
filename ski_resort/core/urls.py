@@ -28,4 +28,5 @@ urlpatterns = [
     path('bookings/create/', views.create_booking, name='create_booking'),
     path('bookings/edit/<int:booking_id>/', views.edit_booking, name='edit_booking'),
     path('bookings/delete/<int:booking_id>/', views.delete_booking, name='delete_booking'),
+    path('bookings/create-combined/', views.create_combined_booking, name='create_combined_booking'),
 ]

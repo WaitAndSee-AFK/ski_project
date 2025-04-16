@@ -15,11 +15,83 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 import json
 import logging
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Booking, CustomUser, Service, Equipment
 from .forms import BookingForm
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.utils import timezone
+from datetime import datetime, timedelta
+from .models import Booking, CustomUser, Service, Equipment
+from .forms import BookingForm
+import logging
+from django.db.models import Q
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.db.models import Q
+from django.utils import timezone
+from datetime import timedelta
+from .models import Booking, CustomUser, Service, Equipment
+from .forms import BookingForm
+import logging
+
+logger = logging.getLogger(__name__)
+
+def create_combined_booking(request):
+    if request.method == 'POST':
+        user_form = CustomUserCreationForm(request.POST, prefix='user')
+        booking_form = BookingForm(request.POST, prefix='booking')
+
+        # Логируем данные, отправленные в POST
+        logger.debug(f"POST данные: {request.POST}")
+
+        if user_form.is_valid() and booking_form.is_valid():
+            try:
+                # Проверяем, существует ли пользователь с таким номером телефона
+                phone_number = user_form.cleaned_data.get('phone_number')
+                if CustomUser.objects.filter(phone_number=phone_number).exists():
+                    messages.error(request, 'Пользователь с таким номером телефона уже существует.')
+                    return render(request, 'create_combined.html', {
+                        'user_form': user_form,
+                        'booking_form': booking_form,
+                        'services': Service.objects.all(),
+                        'equipment': Equipment.objects.all(),
+                    })
+
+                # Создаем пользователя
+                user = user_form.save()
+
+                # Создаем бронирование
+                booking = booking_form.save(commit=False)
+                booking.user = user  # Задаём пользователя
+                booking.end_date = booking_form.cleaned_data['end_date']  # Устанавливаем end_date из формы
+                booking.full_clean()  # Вызываем валидацию модели
+                booking.save()
+
+                messages.success(request, 'Пользователь и бронирование успешно созданы!')
+                return redirect('booking_list')
+
+            except Exception as e:
+                logger.error(f"Ошибка при создании: {str(e)}")
+                messages.error(request, f'Ошибка при создании: {str(e)}')
+        else:
+            # Логируем ошибки форм
+            logger.error(f"Ошибки в формах: user - {user_form.errors}, booking - {booking_form.errors}")
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+    else:
+        user_form = CustomUserCreationForm(prefix='user')
+        booking_form = BookingForm(prefix='booking', initial={
+            'start_date': timezone.now() + timedelta(hours=1),
+            'duration_type': 'hour',
+        })
+
+    return render(request, 'create_combined.html', {
+        'user_form': user_form,
+        'booking_form': booking_form,
+        'services': Service.objects.all(),
+        'equipment': Equipment.objects.all(),
+    })
 
 
 def booking_list(request):
@@ -42,32 +114,39 @@ def booking_list(request):
     })
 
 
+import logging
+logger = logging.getLogger(__name__)
+
 def create_booking(request):
     if request.method == 'POST':
         form = BookingForm(request.POST)
         if form.is_valid():
             try:
-                booking = form.save()
-                messages.success(request, 'Бронирование успешно создано.')
+                # Создаём объект бронирования, но не сохраняем его сразу
+                booking = form.save(commit=False)
+                # Устанавливаем end_date из cleaned_data
+                booking.end_date = form.cleaned_data['end_date']
+                # Сохраняем объект
+                booking.save()
+                messages.success(request, 'Бронирование успешно создано!')
                 return redirect('booking_list')
             except Exception as e:
                 messages.error(request, f'Ошибка при создании бронирования: {str(e)}')
         else:
-            # Выведем ошибки формы для отладки
-            print("Form errors:", form.errors)
             messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
     else:
-        form = BookingForm()
-
-    services = Service.objects.all()
-    equipment = Equipment.objects.all()
+        form = BookingForm(initial={
+            'start_date': timezone.now() + timedelta(hours=1),
+            'duration_type': 'hour',
+        })
 
     return render(request, 'create_booking.html', {
         'form': form,
-        'users': CustomUser.objects.exclude(phone_number__isnull=True),
+        'users': CustomUser.objects.all(),
         'services': Service.objects.all(),
         'equipment': Equipment.objects.all(),
     })
+
 
 def edit_booking(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id)
@@ -89,6 +168,7 @@ def edit_booking(request, booking_id):
         'equipment': Equipment.objects.all(),  # Предполагается, что сервер фильтрует доступное оборудование
     })
 
+
 def delete_booking(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id)
     if request.method == 'POST':
@@ -97,7 +177,9 @@ def delete_booking(request, booking_id):
         return redirect('booking_list')
     return redirect('booking_list')
 
+
 logger = logging.getLogger(__name__)
+
 
 @login_required
 def bookings_view(request):
@@ -117,6 +199,7 @@ def bookings_view(request):
         'services': services,
         'equipment': equipment
     })
+
 
 @login_required
 @require_http_methods(["POST"])
@@ -160,6 +243,7 @@ def get_available_services(request):
         logger.error(f"Ошибка при получении доступных услуг: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
 @csrf_exempt
 @require_POST
 def get_available_equipment(request):
@@ -170,7 +254,8 @@ def get_available_equipment(request):
         end_date_str = data.get('end_date')
         exclude_booking_id = data.get('exclude_booking_id')
 
-        logger.info(f"Запрос оборудования: service_id={service_id}, start_date={start_date_str}, end_date={end_date_str}, exclude_booking_id={exclude_booking_id}")
+        logger.info(
+            f"Запрос оборудования: service_id={service_id}, start_date={start_date_str}, end_date={end_date_str}, exclude_booking_id={exclude_booking_id}")
 
         if not service_id or not start_date_str or not end_date_str:
             return JsonResponse({'success': False, 'error': 'Не указаны обязательные параметры'}, status=400)
@@ -219,6 +304,7 @@ def get_available_equipment(request):
     except Exception as e:
         logger.error(f"Ошибка при получении оборудования: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 # @login_required
 # @require_http_methods(["POST"])
@@ -399,12 +485,14 @@ class CustomLoginView(LoginView):
             return reverse_lazy('bookings_admin')
         return reverse_lazy('profile')
 
+
 def services_view(request):
     services = Service.objects.all()
     service_types = ServiceType.objects.all()
     bookings = Booking.objects.filter(user=request.user) if request.user.is_authenticated else None
     return render(request, 'services.html',
                   {'services': services, 'service_types': service_types, 'bookings': bookings})
+
 
 @login_required
 def get_service(request, service_id):
@@ -427,6 +515,7 @@ def get_service(request, service_id):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 @login_required
 @csrf_exempt
@@ -459,6 +548,7 @@ def add_service(request):
         return JsonResponse({'success': True, 'id': service.id})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 
 @login_required
 @csrf_exempt
@@ -501,6 +591,7 @@ def edit_service(request, service_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -520,9 +611,11 @@ def delete_service(request, service_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
 def review_list(request):
     reviews = Review.objects.filter(approved=True).order_by('-created_at')
     return render(request, 'review_list.html', {'reviews': reviews})
+
 
 @login_required
 def create_review(request):
@@ -538,6 +631,7 @@ def create_review(request):
         form = ReviewForm()
     return render(request, 'review_form.html', {'form': form})
 
+
 @login_required
 def review_moderation(request):
     if request.user.is_staff:
@@ -545,6 +639,7 @@ def review_moderation(request):
         return render(request, 'review_moderation.html', {'reviews': reviews})
     messages.warning(request, 'У вас нет прав для доступа к этой странице.')
     return redirect('review_list')
+
 
 class HomeView(View):
     def get(self, request):
@@ -554,6 +649,7 @@ class HomeView(View):
             'location': 'Горы Алтая'
         }
         return render(request, 'home.html', {'complex_info': complex_info})
+
 
 class PricingView(View):
     def get(self, request):
@@ -566,6 +662,7 @@ class PricingView(View):
             'equipment': equipment,
         }
         return render(request, 'pricing.html', context)
+
 
 class RegisterView(View):
     def get(self, request):
@@ -591,6 +688,7 @@ class RegisterView(View):
             messages.error(request, 'Исправьте ошибки в форме.')
         return render(request, 'register.html', {'form': form})
 
+
 class ProfileView(LoginRequiredMixin, ListView):
     model = Booking
     template_name = 'profile.html'
@@ -610,6 +708,7 @@ class ProfileView(LoginRequiredMixin, ListView):
         context['services'] = {s.id: s for s in Service.objects.all()}
         context['equipment'] = {e.id: e for e in Equipment.objects.all()}
         return context
+
 
 @login_required
 @csrf_exempt
@@ -650,6 +749,7 @@ def book_service(request, service_id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
+
 
 class BookServiceView(LoginRequiredMixin, View):
     def get(self, request):
@@ -729,6 +829,7 @@ class BookServiceView(LoginRequiredMixin, View):
 
         return redirect('profile')
 
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_price(request):
@@ -747,6 +848,7 @@ def create_price(request):
         return JsonResponse({'success': True, 'id': price.id})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 
 @csrf_exempt
 @require_http_methods(["PUT"])
@@ -767,6 +869,7 @@ def update_price(request, pk):
         return JsonResponse({'success': False, 'error': 'Цена не найдена'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 
 @csrf_exempt
 @require_http_methods(["POST"])

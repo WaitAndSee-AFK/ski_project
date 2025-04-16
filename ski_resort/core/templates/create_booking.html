@@ -3,6 +3,7 @@
 <style>
     :root {
         --primary-color: #1e90ff;
+        --secondary-color: #28a745;
         --error-color: #f44336;
         --border-color: #e0e0e0;
         --text-color: #333;
@@ -82,7 +83,7 @@
 
     .form-footer {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         gap: 1rem;
         margin-top: 2rem;
     }
@@ -95,6 +96,11 @@
         transition: all 0.3s;
         font-size: 1rem;
         border: none;
+    }
+
+    .btn-left-group {
+        display: flex;
+        gap: 1rem;
     }
 
     .btn-cancel {
@@ -115,6 +121,15 @@
         background-color: #187bcd;
     }
 
+    .btn-create-user {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+
+    .btn-create-user:hover {
+        background-color: #218838;
+    }
+
     .errorlist {
         color: var(--error-color);
         margin-top: 0.5rem;
@@ -123,7 +138,24 @@
         font-size: 0.875rem;
     }
 
-    /* Убираем стандартные разделительные линии */
+    .alert {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
     hr {
         display: none;
     }
@@ -133,6 +165,29 @@
     <div class="booking-header">
         <h1>Создать бронирование</h1>
     </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        <strong>Ошибки в форме:</strong>
+        <ul>
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
     <form method="POST" id="bookingForm" novalidate>
         {% csrf_token %}
@@ -147,13 +202,6 @@
                     </option>
                 {% endfor %}
             </select>
-            {% if form.user.errors %}
-                <ul class="errorlist">
-                    {% for error in form.user.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
         </div>
 
         <div class="form-group">
@@ -166,13 +214,6 @@
                     </option>
                 {% endfor %}
             </select>
-            {% if form.service.errors %}
-                <ul class="errorlist">
-                    {% for error in form.service.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
         </div>
 
         <div class="form-group">
@@ -185,13 +226,6 @@
                     </option>
                 {% endfor %}
             </select>
-            {% if form.equipment.errors %}
-                <ul class="errorlist">
-                    {% for error in form.equipment.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
         </div>
 
         <div class="form-group">
@@ -199,13 +233,6 @@
             <input type="datetime-local" id="id_start_date" name="start_date"
                    class="form-control" required
                    value="{{ form.start_date.value|default_if_none:'' }}">
-            {% if form.start_date.errors %}
-                <ul class="errorlist">
-                    {% for error in form.start_date.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
         </div>
 
         <div class="form-group">
@@ -214,38 +241,28 @@
                 <option value="hour" {% if form.duration_type.value == 'hour' %}selected{% endif %}>Час</option>
                 <option value="day" {% if form.duration_type.value == 'day' %}selected{% endif %}>День</option>
             </select>
-            {% if form.duration_type.errors %}
-                <ul class="errorlist">
-                    {% for error in form.duration_type.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
         </div>
 
         <div class="form-group">
             <label for="id_end_date">Дата окончания</label>
-            <input type="datetime-local" id="id_end_date" name="end_date"
-                   class="form-control" readonly
-                   value="{{ form.end_date.value|default_if_none:'' }}">
-            {% if form.end_date.errors %}
-                <ul class="errorlist">
-                    {% for error in form.end_date.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
+            <input type="datetime-local" id="id_end_date" class="form-control" readonly>
         </div>
 
         <div class="form-footer">
-            <a href="{% url 'booking_list' %}" class="btn btn-cancel">Отмена</a>
-            <button type="submit" class="btn btn-save">Создать бронирование</button>
+            <div class="btn-left-group">
+                <a href="{% url 'create_combined_booking' %}" class="btn btn-create-user">
+                    Создать пользователя
+                </a>
+                <a href="{% url 'booking_list' %}" class="btn btn-cancel">Отмена</a>
+            </div>
+            <button type="submit" class="btn btn-save">Забронировать</button>
         </div>
     </form>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('bookingForm');
     const startDateInput = document.getElementById('id_start_date');
     const durationTypeSelect = document.getElementById('id_duration_type');
     const endDateInput = document.getElementById('id_end_date');
@@ -294,6 +311,17 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateEndDate();
         }
     }
+
+    // Проверка валидности формы перед отправкой
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Показываем сообщение об ошибке
+            alert('Пожалуйста, заполните все обязательные поля корректно');
+        }
+    }, false);
 
     // Инициализация
     setMinDateTime();

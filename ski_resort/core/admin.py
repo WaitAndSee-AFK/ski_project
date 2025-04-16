@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import CustomUser, Role, Price, ServiceType, Service, Equipment, Review, Booking
+from .models import (
+    Role, CustomUser, Price, ServiceType,
+    Service, Equipment, Review, Booking
+)
+
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ('id', 'role_name')
+    search_fields = ('role_name',)
+    ordering = ('id',)
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
@@ -12,12 +21,6 @@ class CustomUserAdmin(admin.ModelAdmin):
         ('Личная информация', {'fields': ('first_name', 'last_name', 'role')}),
         ('Разрешения', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
     )
-
-@admin.register(Role)
-class RoleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'role_name')
-    search_fields = ('role_name',)
-    ordering = ('id',)
 
 @admin.register(Price)
 class PriceAdmin(admin.ModelAdmin):
@@ -66,7 +69,8 @@ class ReviewAdmin(admin.ModelAdmin):
 class BookingAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'service', 'equipment', 'start_date', 'end_date', 'duration_type')
     list_filter = ('duration_type', 'service', 'equipment', 'user')
-    search_fields = ('service__name', 'equipment__name', 'user__phone_number', 'user__first_name', 'user__last_name')
+    search_fields = ('service__name', 'equipment__name', 'user__phone_number',
+                    'user__first_name', 'user__last_name')
     date_hierarchy = 'start_date'
     ordering = ('-start_date',)
     fieldsets = (
