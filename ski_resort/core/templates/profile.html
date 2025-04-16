@@ -1,34 +1,46 @@
-{% extends 'base.html' %}
-{% load lookup_tags %}
+{% extends "base.html" %}
 {% block content %}
 <style>
-    body {
+    * {
         font-family: 'Roboto', sans-serif;
-        background-color: white;
-        margin: 0;
-        padding: 0;
+        font-size: 20px; /* Установлен единый размер шрифта */
         color: #333;
     }
 
-    .profile-container {
-        max-width: 800px;
-        margin: 80px auto 40px;
-        padding: 30px;
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+    }
+
+    .container {
+        width: 90%;
+        max-width: 500px;
+        margin: 60px auto;
+        padding: 25px;
         background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     h1 {
-        font-size: 24px;
-        color: #1a73e8;
-        margin-bottom: 30px;
+        color: #1e90ff;
         text-align: center;
-        border-bottom: none;
+        margin-bottom: 30px;
+        font-size: 20px; /* Синхронизировано с общим размером */
+        font-weight: 600;
+    }
+
+    .user-name {
+        font-weight: 700;
+        color: #1e90ff;
     }
 
     h2 {
-        font-size: 20px;
-        color: #1a73e8;
-        margin: 30px 0 20px;
+        color: #1e90ff;
+        font-size: 20px; /* Синхронизировано с общим размером */
+        font-weight: 600;
+        margin: 20px 0 15px;
     }
 
     .bookings-list {
@@ -38,237 +50,144 @@
     }
 
     .booking-item {
-        padding: 20px;
+        padding: 15px;
         margin-bottom: 15px;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
         background-color: #fafafa;
     }
 
     .booking-item strong {
         display: block;
         margin-bottom: 8px;
-        font-size: 16px;
+        font-weight: 500;
     }
 
-    .dates {
+    .booking-item p {
+        margin: 5px 0;
         color: #666;
-        font-size: 14px;
-        margin: 10px 0;
     }
 
     .no-bookings {
-        padding: 20px;
         text-align: center;
-        color: #888;
+        padding: 20px;
+        color: #666;
         border: 1px dashed #ddd;
-        border-radius: 6px;
+        border-radius: 4px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        text-align: center;
+        display: inline-block;
+        text-decoration: none;
+    }
+
+    .btn-edit {
+        background-color: #1e90ff;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        opacity: 0.9;
+    }
+
+    .btn-cancel {
+        background-color: #f44336;
+        color: white;
+    }
+
+    .btn-cancel:hover {
+        opacity: 0.9;
     }
 
     .booking-actions {
         display: flex;
         gap: 10px;
-        margin-top: 15px;
+        margin-top: 10px;
     }
 
-    .edit-booking, .cancel-booking {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        font-size: 14px;
-        cursor: pointer;
+    .errorlist {
+        color: #f44336;
+        margin: 8px 0 0 0;
+        list-style: none;
+        padding: 0;
     }
 
-    .edit-booking {
-        background-color: #1a73e8;
-        color: white;
-    }
-
-    .cancel-booking {
-        background-color: #f1f1f1;
-        color: #d32f2f;
-        border: 1px solid #d32f2f;
-    }
-
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.4);
-    }
-
-    .modal-content {
-        background-color: white;
-        margin: 15% auto;
-        padding: 20px;
-        border-radius: 6px;
-        width: 90%;
-        max-width: 400px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    .messages {
         margin-bottom: 20px;
     }
 
-    .close {
-        color: #aaa;
-        font-size: 24px;
-        cursor: pointer;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    .btn {
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    .btn-cancel {
-        background-color: #f1f1f1;
-        color: #333;
-        border: 1px solid #ddd;
-    }
-
-    .btn-confirm {
-        background-color: #4285f4;
-        color: white;
-        border: none;
-    }
-
-    label {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
-
-    input, select {
-        width: 100%;
+    .alert {
         padding: 10px;
-        margin-bottom: 15px;
-        border: 1px solid #ddd;
+        margin-bottom: 10px;
         border-radius: 4px;
-        box-sizing: border-box;
     }
 
-    @media (max-width: 600px) {
-        .profile-container {
-            padding: 20px;
-            margin: 60px auto 20px;
-        }
+    .alert-success {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
 
-        .booking-actions {
-            flex-direction: column;
-        }
+    .alert-error {
+        background-color: #ffebee;
+        color: #d32f2f;
     }
 </style>
 
-<!-- Отображение сообщений пользователю -->
-{% if messages %}
+<div class="container">
+    <h1>Ваш профиль, <span class="user-name">{{ user.first_name|default:user.phone_number }}</span></h1>
+
+    {% if messages %}
     <div class="messages">
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
         {% endfor %}
     </div>
-{% endif %}
-
-<div class="profile-container">
-    <!-- Заголовок профиля с именем пользователя -->
-    {% if user.first_name %}
-        <h1>Ваш профиль, {{ user.first_name }}{% if user.last_name %} {{ user.last_name }}{% endif %}</h1>
-    {% else %}
-        <h1>Ваш профиль</h1>
     {% endif %}
 
     <h2>Ваши бронирования</h2>
+
     {% if bookings %}
-        <ul class="bookings-list">
-            {% for booking in bookings %}
-                <li class="booking-item">
-                    <!-- Отображение названия услуги или оборудования -->
-                    {% if booking.service %}
-                        <strong>{{ booking.service.name|default:"Неизвестная услуга" }}</strong>
-                    {% elif booking.equipment %}
-                        <strong>{{ booking.equipment.name|default:"Неизвестное оборудование" }}</strong>
-                    {% else %}
-                        <strong>Бронирование #{{ booking.id }}</strong>
-                    {% endif %}
-
-                    <!-- Даты и тип длительности -->
-                    <p class="dates">
-                        С {{ booking.start_date|date:"d.m.Y H:i" }}
-                        по {{ booking.end_date|date:"d.m.Y H:i" }}
-                        ({{ booking.duration_type|default:"час" }})
-                    </p>
-
-                    <!-- Кнопки действий доступны только для активных бронирований -->
-                    {% if booking.end_date > now %}
-                    <div class="booking-actions">
-                        <button class="edit-booking"
-                            onclick="openEditModal({{ booking.id }}, '{{ booking.start_date|date:'Y-m-d' }}', '{{ booking.start_date|time:'H:i' }}')">
-                            Редактировать
-                        </button>
-                        <button class="cancel-booking" onclick="cancelBooking({{ booking.id }})">
-                            Отменить
-                        </button>
-                    </div>
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
+    <ul class="bookings-list">
+        {% for booking in bookings %}
+        <li class="booking-item">
+            {% if booking.service %}
+            <strong>{{ booking.service.name|default:"Неизвестная услуга" }}</strong>
+            {% elif booking.equipment %}
+            <strong>{{ booking.equipment.name|default:"Неизвестное оборудование" }}</strong>
+            {% else %}
+            <strong>Бронирование #{{ booking.id }}</strong>
+            {% endif %}
+            <p>
+                С {{ booking.start_date|date:"d.m.Y H:i" }}
+                по {{ booking.end_date|date:"d.m.Y H:i" }}
+                ({{ booking.get_duration_type_display|default:"Час" }})
+            </p>
+            <div class="booking-actions">
+                <a href="{% url 'edit_booking' booking.id %}" class="btn btn-edit">Изменить</a>
+                <form action="{% url 'delete_booking' booking.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-cancel" onclick="return confirm('Вы уверены, что хотите отменить это бронирование?')">Отменить</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
     {% else %}
-        <p class="no-bookings">У вас нет активных бронирований</p>
+    <p class="no-bookings">У вас нет активных бронирований</p>
     {% endif %}
-</div>
-
-<!-- Модальное окно для редактирования бронирования -->
-<div id="editModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Редактировать бронирование</h2>
-            <span class="close" onclick="closeEditModal()">×</span>
-        </div>
-        <div class="modal-body">
-            <form id="editForm">
-                {% csrf_token %}
-                <input type="hidden" id="bookingId" gesam="booking_id">
-                <label for="editDate">Дата бронирования:</label>
-                <input type="date" id="editDate" name="edit_date" required>
-                <label for="editTime">Время бронирования:</label>
-                <input type="time" id="editTime" name="edit_time" required>
-                <label for="durationType">Тип бронирования:</label>
-                <select id="durationType" name="duration_type" required>
-                    <option value="hour">Почасовое</option>
-                    <option value="day">Посуточное</option>
-                </select>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Отмена</button>
-            <button type="button" class="btn btn-confirm" onclick="submitEditBooking()">Сохранить</button>
-        </div>
-    </div>
 </div>
 
 <script>
     // Скрытие сообщений через 3 секунды
-    function hideMessages() {
+    document.addEventListener('DOMContentLoaded', () => {
         const messages = document.querySelectorAll('.alert');
         messages.forEach(message => {
             setTimeout(() => {
@@ -276,136 +195,6 @@
                 setTimeout(() => message.remove(), 500);
             }, 3000);
         });
-    }
-
-    document.addEventListener('DOMContentLoaded', hideMessages);
-
-    // Получение CSRF-токена из cookies
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    const csrftoken = getCookie('csrftoken');
-
-    // Функция отмены бронирования
-    function cancelBooking(bookingId) {
-        if (confirm("Вы уверены, что хотите отменить бронирование?")) {
-            fetch(`/cancel_booking/${bookingId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrftoken,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({})
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Ошибка сети');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    alert("Бронирование успешно отменено!");
-                    window.location.reload();
-                } else {
-                    alert("Ошибка при отмене бронирования: " + (data.error || 'Неизвестная ошибка'));
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
-                alert("Произошла ошибка при отправке запроса.");
-            });
-        }
-    }
-
-    // Открытие модального окна для редактирования
-    function openEditModal(bookingId, startDate, startTime) {
-        document.getElementById('bookingId').value = bookingId;
-        document.getElementById('editDate').value = startDate;
-        document.getElementById('editTime').value = startTime;
-        document.getElementById('editModal').style.display = 'block';
-    }
-
-    // Закрытие модального окна
-    function closeEditModal() {
-        document.getElementById('editModal').style.display = 'none';
-        document.getElementById('editForm').reset();
-    }
-
-    // Отправка изменений бронирования
-    function submitEditBooking() {
-        const bookingId = document.getElementById('bookingId').value;
-        const editDate = document.getElementById('editDate').value;
-        const editTime = document.getElementById('editTime').value;
-        const durationType = document.getElementById('durationType').value;
-
-        if (!editDate || !editTime || !durationType) {
-            alert('Пожалуйста, заполните все поля');
-            return;
-        }
-
-        const startDate = `${editDate}T${editTime}`;
-        let endDate;
-
-        if (durationType === 'hour') {
-            endDate = new Date(new Date(startDate).getTime() + 60 * 60 * 1000);
-        } else {
-            endDate = new Date(new Date(startDate).getTime() + 24 * 60 * 60 * 1000);
-        }
-
-        endDate = new Date(endDate).toISOString();
-
-        fetch(`/edit_booking/${bookingId}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                start_date: startDate,
-                end_date: endDate,
-                duration_type: durationType
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Ошибка сети');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                alert('Бронирование успешно обновлено!');
-                closeEditModal();
-                window.location.reload();
-            } else {
-                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка:', error);
-            alert('Произошла ошибка при обновлении бронирования.');
-        });
-    }
-
-    // Закрытие модального окна при клике вне его
-    window.onclick = function(event) {
-        const modal = document.getElementById('editModal');
-        if (event.target === modal) {
-            closeEditModal();
-        }
-    };
+    });
 </script>
 {% endblock %}

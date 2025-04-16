@@ -114,7 +114,6 @@ def booking_list(request):
     })
 
 
-import logging
 logger = logging.getLogger(__name__)
 
 def create_booking(request):
@@ -149,15 +148,22 @@ def create_booking(request):
 
 
 def edit_booking(request, booking_id):
+    logger.info(f"Начало редактирования бронирования {booking_id} пользователем {request.user.phone_number}")
     booking = get_object_or_404(Booking, id=booking_id)
     if request.method == 'POST':
         form = BookingForm(request.POST, instance=booking)
         if form.is_valid():
             form.save()
             messages.success(request, 'Бронирование успешно обновлено.')
-            return redirect('booking_list')
+            if request.user.is_staff or request.user.is_superuser:
+                logger.info(f"Пользователь {request.user.phone_number} (staff/superuser) перенаправлен на booking_list")
+                return redirect('booking_list')
+            else:
+                logger.info(f"Пользователь {request.user.phone_number} (обычный) перенаправлен на profile")
+                return redirect('profile')
         else:
             messages.error(request, 'Ошибка при обновлении бронирования.')
+            logger.error(f"Ошибка в форме редактирования бронирования {booking_id}: {form.errors}")
     else:
         form = BookingForm(instance=booking)
     return render(request, 'edit_booking.html', {
@@ -165,17 +171,59 @@ def edit_booking(request, booking_id):
         'booking': booking,
         'users': CustomUser.objects.all(),
         'services': Service.objects.all(),
-        'equipment': Equipment.objects.all(),  # Предполагается, что сервер фильтрует доступное оборудование
+        'equipment': Equipment.objects.all(),
     })
 
+# def edit_booking(request, booking_id):
+#     booking = get_object_or_404(Booking, id=booking_id)
+#     if request.method == 'POST':
+#         form = BookingForm(request.POST, instance=booking)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, 'Бронирование успешно обновлено.')
+#             return redirect('booking_list')
+#         else:
+#             messages.error(request, 'Ошибка при обновлении бронирования.')
+#     else:
+#         form = BookingForm(instance=booking)
+#     return render(request, 'edit_booking.html', {
+#         'form': form,
+#         'booking': booking,
+#         'users': CustomUser.objects.all(),
+#         'services': Service.objects.all(),
+#         'equipment': Equipment.objects.all(),  # Предполагается, что сервер фильтрует доступное оборудование
+#     })
 
 def delete_booking(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id)
+
+    # Проверяем, что бронирование принадлежит пользователю, если он не staff и не superuser
+    if not (request.user.is_staff or request.user.is_superuser) and booking.user != request.user:
+        messages.error(request, 'У вас нет прав для удаления этого бронирования.')
+        return redirect('profile')  # Перенаправляем на профиль в случае ошибки
+
     if request.method == 'POST':
         booking.delete()
         messages.success(request, 'Бронирование успешно удалено.')
-        return redirect('booking_list')
-    return redirect('booking_list')
+        # Перенаправление в зависимости от роли пользователя
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('booking_list')  # Staff и superuser перенаправляются на booking_list
+        else:
+            return redirect('profile')  # Обычные пользователи перенаправляются на профиль
+    else:
+        # Если метод не POST, перенаправляем в зависимости от роли
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('booking_list')
+        else:
+            return redirect('profile')
+
+# def delete_booking(request, booking_id):
+#     booking = get_object_or_404(Booking, id=booking_id)
+#     if request.method == 'POST':
+#         booking.delete()
+#         messages.success(request, 'Бронирование успешно удалено.')
+#         return redirect('booking_list')
+#     return redirect('booking_list')
 
 
 logger = logging.getLogger(__name__)
@@ -711,44 +759,249 @@ class ProfileView(LoginRequiredMixin, ListView):
 
 
 @login_required
-@csrf_exempt
 def book_service(request, service_id):
+    service = get_object_or_404(Service, id=service_id)
+    equipment = Equipment.objects.filter(status='ready')
+
     if request.method == 'POST':
+        form = BookingForm(request.POST)
+        start_date_str = request.POST.get('start_date')
+
+        if not start_date_str:
+            messages.error(request, 'Не указана дата начала бронирования.')
+            return render(request, 'book_service.html', {
+                'form': form,
+                'services': Service.objects.all(),
+                'equipment': equipment,
+            })
+
         try:
-            data = json.loads(request.body)
-            service = get_object_or_404(Service, id=service_id)
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+            start_date = timezone.make_aware(start_date)
 
-            start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
-            end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
-            duration_type = data.get('duration_type', 'hour')
+            if start_date < timezone.now():
+                messages.error(request, 'Дата начала должна быть не раньше текущего времени.')
+                return render(request, 'book_service.html', {
+                    'form': form,
+                    'services': Service.objects.all(),
+                    'equipment': equipment,
+                })
 
-            conflicting_bookings = Booking.objects.filter(
-                service=service,
+            duration_type = request.POST.get('booking-duration_type', 'hour')
+            end_date = start_date + timedelta(hours=1) if duration_type == 'hour' else start_date + timedelta(days=1)
+
+            # Фильтрация доступного оборудования
+            booked_equipment = Booking.objects.filter(
                 start_date__lt=end_date,
                 end_date__gt=start_date
-            )
-            if conflicting_bookings.exists():
-                return JsonResponse({'success': False, 'error': 'Выбранное время уже занято'})
+            ).exclude(equipment__isnull=True).values_list('equipment_id', flat=True)
+            available_equipment = Equipment.objects.filter(status='ready').exclude(id__in=booked_equipment)
+            form.fields['equipment'].queryset = available_equipment
 
-            booking = Booking.objects.create(
-                user=request.user,
-                service=service,
-                start_date=start_date,
-                end_date=end_date,
-                duration_type=duration_type
-            )
-            return JsonResponse({
-                'success': True,
-                'booking_id': booking.id,
-                'message': 'Бронирование успешно создано'
-            })
-        except Service.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Услуга не найдена'})
+            if form.is_valid():
+                # Проверка конфликтов для услуги
+                conflicting_bookings = Booking.objects.filter(
+                    service=form.cleaned_data['service'],
+                    start_date__lt=end_date,
+                    end_date__gt=start_date
+                )
+                if conflicting_bookings.exists():
+                    messages.error(request, 'Выбранное время уже занято для этой услуги.')
+                    return render(request, 'book_service.html', {
+                        'form': form,
+                        'services': Service.objects.all(),
+                        'equipment': available_equipment,
+                    })
+
+                # Проверка конфликтов для оборудования
+                selected_equipment = form.cleaned_data['equipment']
+                if selected_equipment:
+                    conflicting_equipment = Booking.objects.filter(
+                        equipment=selected_equipment,
+                        start_date__lt=end_date,
+                        end_date__gt=start_date
+                    )
+                    if conflicting_equipment.exists():
+                        messages.error(request, 'Выбранное оборудование уже занято.')
+                        return render(request, 'book_service.html', {
+                            'form': form,
+                            'services': Service.objects.all(),
+                            'equipment': available_equipment,
+                        })
+
+                # Сохранение бронирования
+                booking = form.save(commit=False)
+                booking.user = request.user
+                booking.end_date = end_date
+                booking.save()
+                messages.success(request, 'Бронирование успешно создано!')
+                return redirect('profile')
+            else:
+                messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
         except ValueError as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
+            messages.error(request, f'Неверный формат даты: {str(e)}')
+    else:
+        initial_start_date = timezone.now() + timedelta(hours=1)
+        form = BookingForm(initial={
+            'service': service,
+            'start_date': initial_start_date,
+            'duration_type': 'hour',
+        })
+        # Фильтрация доступного оборудования
+        end_date = initial_start_date + timedelta(hours=1)
+        booked_equipment = Booking.objects.filter(
+            start_date__lt=end_date,
+            end_date__gt=initial_start_date
+        ).exclude(equipment__isnull=True).values_list('equipment_id', flat=True)
+        form.fields['equipment'].queryset = Equipment.objects.filter(status='ready').exclude(id__in=booked_equipment)
+
+    return render(request, 'book_service.html', {
+        'form': form,
+        'services': Service.objects.all(),
+        'equipment': equipment,
+    })
+
+# @login_required
+# def book_service(request, service_id):
+#     if request.method == 'POST':
+#         form = BookingForm(request.POST)
+#         # Обновляем queryset для equipment в зависимости от выбранной услуги
+#         service_id = request.POST.get('service')
+#         if service_id:
+#             try:
+#                 service = Service.objects.get(id=service_id)
+#                 # Фильтруем оборудование, связанное с услугой и доступное
+#                 equipment = service.equipment.filter(status='ready')
+#                 # Исключаем оборудование, уже забронированное на выбранный период
+#                 start_date = datetime.strptime(request.POST.get('start_date'), '%Y-%m-%dT%H:%M')
+#                 start_date = timezone.make_aware(start_date)
+#                 duration_type = request.POST.get('duration_type')
+#                 end_date = start_date + timedelta(hours=1) if duration_type == 'hour' else start_date + timedelta(days=1)
+#                 booked_equipment = Booking.objects.filter(
+#                     start_date__lt=end_date,
+#                     end_date__gt=start_date
+#                 ).exclude(equipment__isnull=True).values_list('equipment_id', flat=True)
+#                 equipment = equipment.exclude(id__in=booked_equipment)
+#                 form.fields['equipment'].queryset = equipment
+#             except Service.DoesNotExist:
+#                 messages.error(request, 'Выбранная услуга не существует.')
+#             except ValueError as e:
+#                 messages.error(request, f'Ошибка формата даты: {str(e)}')
+#
+#         if form.is_valid():
+#             try:
+#                 # Проверяем конфликты для услуги
+#                 service = form.cleaned_data['service']
+#                 start_date = form.cleaned_data['start_date']
+#                 duration_type = form.cleaned_data['duration_type']
+#                 end_date = start_date + timedelta(hours=1) if duration_type == 'hour' else start_date + timedelta(days=1)
+#
+#                 conflicting_bookings = Booking.objects.filter(
+#                     service=service,
+#                     start_date__lt=end_date,
+#                     end_date__gt=start_date
+#                 )
+#                 if conflicting_bookings.exists():
+#                     messages.error(request, 'Выбранное время уже занято для этой услуги.')
+#                     return render(request, 'book_service.html', {
+#                         'form': form,
+#                         'services': Service.objects.all(),
+#                         'equipment': equipment,
+#                     })
+#
+#                 # Проверяем конфликты для оборудования, если выбрано
+#                 equipment = form.cleaned_data['equipment']
+#                 if equipment:
+#                     conflicting_equipment = Booking.objects.filter(
+#                         equipment=equipment,
+#                         start_date__lt=end_date,
+#                         end_date__gt=start_date
+#                     )
+#                     if conflicting_equipment.exists():
+#                         messages.error(request, 'Выбранное оборудование уже занято.')
+#                         return render(request, 'book_service.html', {
+#                             'form': form,
+#                             'services': Service.objects.all(),
+#                             'equipment': equipment,
+#                         })
+#
+#                 # Сохраняем бронирование
+#                 booking = form.save(commit=False)
+#                 booking.user = request.user
+#                 booking.end_date = end_date
+#                 booking.full_clean()
+#                 booking.save()
+#                 messages.success(request, 'Бронирование успешно создано!')
+#                 return redirect('profile')
+#             except Exception as e:
+#                 messages.error(request, f'Ошибка при создании бронирования: {str(e)}')
+#         else:
+#             messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+#     else:
+#         service = get_object_or_404(Service, id=service_id)
+#         initial_start_date = timezone.now() + timedelta(hours=1)
+#         form = BookingForm(initial={
+#             'service': service,
+#             'start_date': initial_start_date,
+#             'duration_type': 'hour',
+#         })
+#         # Фильтруем оборудование для начального отображения
+#         equipment = service.equipment.filter(status='ready')
+#         # Исключаем уже забронированное оборудование
+#         start_date = initial_start_date
+#         end_date = start_date + timedelta(hours=1)
+#         booked_equipment = Booking.objects.filter(
+#             start_date__lt=end_date,
+#             end_date__gt=start_date
+#         ).exclude(equipment__isnull=True).values_list('equipment_id', flat=True)
+#         equipment = equipment.exclude(id__in=booked_equipment)
+#         form.fields['equipment'].queryset = equipment
+#
+#     return render(request, 'book_service.html', {
+#         'form': form,
+#         'services': Service.objects.all(),
+#         'equipment': equipment,
+#     })
+
+# @login_required
+# @csrf_exempt
+# def book_service(request, service_id):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             service = get_object_or_404(Service, id=service_id)
+#
+#             start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
+#             end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
+#             duration_type = data.get('duration_type', 'hour')
+#
+#             conflicting_bookings = Booking.objects.filter(
+#                 service=service,
+#                 start_date__lt=end_date,
+#                 end_date__gt=start_date
+#             )
+#             if conflicting_bookings.exists():
+#                 return JsonResponse({'success': False, 'error': 'Выбранное время уже занято'})
+#
+#             booking = Booking.objects.create(
+#                 user=request.user,
+#                 service=service,
+#                 start_date=start_date,
+#                 end_date=end_date,
+#                 duration_type=duration_type
+#             )
+#             return JsonResponse({
+#                 'success': True,
+#                 'booking_id': booking.id,
+#                 'message': 'Бронирование успешно создано'
+#             })
+#         except Service.DoesNotExist:
+#             return JsonResponse({'success': False, 'error': 'Услуга не найдена'})
+#         except ValueError as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
+#         except Exception as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
+#     return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
 
 
 class BookServiceView(LoginRequiredMixin, View):
