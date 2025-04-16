@@ -12,14 +12,15 @@ class BookingForm(forms.ModelForm):
         model = Booking
         fields = ['user', 'service', 'equipment', 'start_date', 'duration_type']
         widgets = {
-            'start_date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'start_date': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control with-icon'}),
+            'service': forms.Select(attrs={'class': 'form-control with-icon'}),
+            'equipment': forms.Select(attrs={'class': 'form-control with-icon'}),
+            'duration_type': forms.Select(attrs={'class': 'form-control with-icon'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Делаем поле user скрытым
         self.fields['user'].widget = forms.HiddenInput()
-        # Делаем поле user необязательным на этапе валидации формы
         self.fields['user'].required = False
 
     def clean(self):
@@ -29,17 +30,13 @@ class BookingForm(forms.ModelForm):
         service = cleaned_data.get('service')
 
         if not service:
-            raise ValidationError("Услуга обязательна для выбора")
+            raise ValidationError("Услуга обязательна для выбора.")
 
         if start_date and duration_type:
             if start_date < timezone.now():
-                raise ValidationError("Дата начала не может быть в прошлом")
+                raise ValidationError("Дата начала не может быть в прошлом.")
 
-            if duration_type == 'hour':
-                end_date = start_date + timedelta(hours=1)
-            else:
-                end_date = start_date + timedelta(days=1)
-
+            end_date = start_date + timedelta(hours=1) if duration_type == 'hour' else start_date + timedelta(days=1)
             cleaned_data['end_date'] = end_date
 
         return cleaned_data
