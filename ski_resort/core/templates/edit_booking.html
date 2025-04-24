@@ -75,6 +75,21 @@
         color: white;
     }
 
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
     .btn:hover {
         opacity: 0.9;
     }
@@ -101,10 +116,78 @@
         background-position: right 10px center;
         background-size: 16px;
     }
+
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 15px;
+    }
+
+    .status-confirmed {
+        background-color: #e6f7ee;
+        color: #28a745;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-completed {
+        background-color: #e7f5fe;
+        color: #17a2b8;
+        border: 1px solid #bee5eb;
+    }
+
+    .status-canceled {
+        background-color: #fce8e8;
+        color: #dc3545;
+        border: 1px solid #f5c6cb;
+    }
+
+    .status-actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
 </style>
 
 <div class="container">
     <h1>Редактировать бронирование</h1>
+
+    <!-- Блок статуса -->
+    <div class="status-badge status-{{ booking.status }}">
+        Текущий статус: {{ booking.get_status_display }}
+    </div>
+
+    <!-- Блок изменения статуса (только для staff/superuser) -->
+    {% if request.user.is_staff or request.user.is_superuser %}
+    <div class="status-actions">
+        <form method="POST" action="{% url 'change_booking_status' booking.id %}?next={% url 'edit_booking' booking.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="confirmed">
+            <button type="submit" class="btn btn-success" {% if booking.status == 'confirmed' %}disabled{% endif %}>
+                Подтвердить
+            </button>
+        </form>
+
+        <form method="POST" action="{% url 'change_booking_status' booking.id %}?next={% url 'edit_booking' booking.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="completed">
+            <button type="submit" class="btn btn-info" {% if booking.status == 'completed' %}disabled{% endif %}>
+                Завершить
+            </button>
+        </form>
+
+        <form method="POST" action="{% url 'change_booking_status' booking.id %}?next={% url 'edit_booking' booking.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="canceled">
+            <button type="submit" class="btn btn-danger" {% if booking.status == 'canceled' %}disabled{% endif %}>
+                Отменить
+            </button>
+        </form>
+    </div>
+    {% endif %}
 
     <form method="POST">
         {% csrf_token %}
@@ -195,7 +278,8 @@
         </div>
 
         <div class="form-footer">
-            <a href="{% url 'booking_list' %}" class="btn btn-cancel">Отмена</a>
+            <a href="{% if request.user.is_staff or request.user.is_superuser %}{% url 'bookings_admin' %}{% else %}{% url 'profile' %}{% endif %}"
+               class="btn btn-cancel">Отмена</a>
             <button type="submit" class="btn btn-save">Сохранить</button>
         </div>
     </form>
