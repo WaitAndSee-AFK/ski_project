@@ -188,6 +188,12 @@ class Review(models.Model):
 
 
 class Booking(models.Model):
+    STATUS_CHOICES = [
+        ('confirmed', 'Подтверждено'),
+        ('completed', 'Завершено'),
+        ('canceled', 'Отменено'),
+    ]
+
     user = models.ForeignKey(
         'CustomUser',
         on_delete=models.CASCADE,
@@ -216,6 +222,14 @@ class Booking(models.Model):
         default='hour',
         verbose_name="Тип длительности"
     )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='confirmed',
+        verbose_name="Статус бронирования",
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(
         verbose_name="Дата создания",
         auto_now_add=True
@@ -232,8 +246,10 @@ class Booking(models.Model):
             if self.start_date >= self.end_date:
                 raise ValidationError("Дата окончания должна быть позже даты начала.")
 
-
     def save(self, *args, **kwargs):
+        # Для новых бронирований устанавливаем статус "confirmed", если он не указан
+        if self._state.adding and self.status is None:
+            self.status = 'confirmed'
         self.full_clean()
         super().save(*args, **kwargs)
 

@@ -1,60 +1,29 @@
 {% extends "base.html" %}
+
+{% block title %}Бронирования - Горнолыжная база{% endblock %}
+
 {% block content %}
 <style>
+    /* Ваши стили остаются без изменений */
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
         padding: 0;
-        background-color: #f4f4f4;
+        background-color: white;
         color: #333;
     }
-
-    .container {
+    .container, .bookings-container {
         width: 90%;
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
         margin-top: 60px;
     }
-
     h1 {
         color: #1e90ff;
         text-align: center;
         margin-bottom: 30px;
     }
-
-    .booking-table {
-        width: 100%;
-        border-collapse: collapse;
-        background-color: white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .booking-table th, .booking-table td {
-        padding: 12px 15px;
-        text-align: left;
-        border-bottom: 1px solid #ddd;
-    }
-
-    .booking-table thead {
-        background-color: #1e90ff;
-        color: white;
-    }
-
-    .booking-table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    .no-bookings {
-        text-align: center;
-        padding: 20px;
-        background-color: white;
-        border-radius: 8px;
-        color: #666;
-    }
-
     .btn {
         padding: 8px 0;
         border: none;
@@ -65,73 +34,131 @@
         text-align: center;
         display: inline-block;
         text-decoration: none;
-        width: 90px;
+        width: 150px;
         box-sizing: border-box;
         font-size: 14px;
-    }
-
-    .btn-create {
         background-color: #28a745;
         margin-bottom: 20px;
-        width: auto;
-        padding: 10px 16px;
     }
-
-    .btn-edit {
+    .btn-secondary {
         background-color: #4CAF50;
+        width: auto;
+        padding: 8px 16px;
     }
-
-    .btn-delete {
+    .btn-danger {
         background-color: #f44336;
+        width: auto;
+        padding: 8px 16px;
     }
-
-    .btn:hover {
-        opacity: 0.9;
+    .btn-container {
+        text-align: right;
+        margin-bottom: 16px;
     }
-
+    .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+    .tab {
+        padding: 10px 20px;
+        background: #f4f4f4;
+        border-radius: 6px 6px 0 0;
+        cursor: pointer;
+        color: #1e90ff;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        transition: background 0.2s, border-bottom 0.2s;
+    }
+    .tab.active {
+        background: #fff;
+        border-bottom: 2px solid #1e90ff;
+        color: #1e90ff;
+    }
+    .tab-content {
+        display: none;
+        background: #fff;
+        padding: 20px;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .tab-content.active {
+        display: block;
+    }
+    .bookings-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .bookings-table th, .bookings-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    .bookings-table thead {
+        background-color: #1e90ff;
+        color: white;
+    }
+    .bookings-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
     .action-buttons {
         display: flex;
         gap: 8px;
     }
-
-    .action-buttons form {
-        margin: 0;
-        padding: 0;
-        display: inline;
-    }
-
-    .phone-number {
-        font-family: monospace;
-        white-space: nowrap;
-    }
-
-    .no-phone {
-        color: #f44336;
-    }
+    .status-new, .status-active { color: #28a745; }
+    .status-completed { color: #888; }
+    .status-canceled { color: #f44336; }
 </style>
 
-<div class="container">
-    <h1>Бронирования</h1>
+<!-- Подключение FontAwesome (если не подключен в base.html) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
-    <a href="{% url 'create_booking' %}" class="btn btn-create">Создать бронирование</a>
+<div class="bookings-container">
+    <h1><i class="fas fa-skiing"></i> Управление бронированиями</h1>
 
-    {% if bookings %}
-        <table class="booking-table">
-            <thead>
-                <tr>
-                    <th>Телефон</th>
-                    <th>Услуга</th>
-                    <th>Снаряжение</th>
-                    <th>Дата начала</th>
-                    <th>Дата окончания</th>
-                    <th>Тип длительности</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for booking in bookings %}
+    <div class="btn-container">
+        <a href="{% url 'create_booking' %}?next={% url 'bookings_admin' %}" class="btn"><i class="fas fa-plus"></i> Создать бронирование</a>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(event, 'active')">Актуальные бронирования</div>
+        <div class="tab" onclick="switchTab(event, 'completed')">Завершенные бронирования</div>
+        <div class="tab" onclick="switchTab(event, 'canceled')">Отмененные бронирования</div>
+    </div>
+
+    <!-- Актуальные бронирования -->
+    <div id="active-bookings" class="tab-content active">
+        {% if active_bookings %}
+        <div class="table-responsive">
+            <table class="bookings-table">
+                <thead>
                     <tr>
-                        <td class="phone-number {% if not booking.user or not booking.user.phone_number %}no-phone{% endif %}">
+                        <th>ID</th>
+                        <th>Клиент</th>
+                        <th>Телефон</th>
+                        <th>Услуга</th>
+                        <th>Снаряжение</th>
+                        <th>Дата начала</th>
+                        <th>Дата окончания</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in active_bookings %}
+                    <tr>
+                        <td>{{ booking.id }}</td>
+                        <td>
+                            {% if booking.user %}
+                                {{ booking.user.get_full_name|default:"Не указано" }}
+                            {% else %}
+                                Гость
+                            {% endif %}
+                        </td>
+                        <td>
                             {% if booking.user and booking.user.phone_number %}
                                 {{ booking.user.phone_number }}
                             {% else %}
@@ -140,26 +167,154 @@
                         </td>
                         <td>{{ booking.service.name|default:"—" }}</td>
                         <td>{{ booking.equipment.name|default:"—" }}</td>
-                        <td>{{ booking.start_date|date:"d.m.Y H:i"|default:"—" }}</td>
-                        <td>{{ booking.end_date|date:"d.m.Y H:i"|default:"—" }}</td>
-                        <td>{{ booking.get_duration_type_display|default:"—" }}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <a href="{% url 'edit_booking' booking.id %}" class="btn btn-edit">Изменить</a>
-                                <form action="{% url 'delete_booking' booking.id %}" method="POST">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-delete" onclick="return confirm('Вы уверены, что хотите удалить это бронирование?')">Удалить</button>
-                                </form>
-                            </div>
+                        <td>{{ booking.start_date|date:"d.m.Y H:i" }}</td>
+                        <td>{{ booking.end_date|date:"d.m.Y H:i" }}</td>
+                        <td class="status-{{ booking.status }}">
+                            {{ booking.get_status_display }}
+                        </td>
+                        <td class="action-buttons">
+                            <a href="{% url 'edit_booking' booking.id %}?next={% url 'bookings_admin' %}" class="btn btn-secondary"><i class="fas fa-edit"></i> Изменить</a>
+                            <form action="{% url 'delete_booking' booking.id %}?next={% url 'bookings_admin' %}" method="POST" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите удалить это бронирование?')">
+                                    <i class="fas fa-trash-alt"></i> Удалить
+                                </button>
+                            </form>
                         </td>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="no-bookings">
-            Бронирований пока нет.
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    {% endif %}
+        {% else %}
+        <div class="alert alert-info" style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+            <i class="fas fa-info-circle"></i> Нет активных бронирований.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Завершенные бронирования -->
+    <div id="completed-bookings" class="tab-content">
+        {% if completed_bookings %}
+        <div class="table-responsive">
+            <table class="bookings-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Клиент</th>
+                        <th>Телефон</th>
+                        <th>Услуга</th>
+                        <th>Снаряжение</th>
+                        <th>Дата начала</th>
+                        <th>Дата окончания</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in completed_bookings %}
+                    <tr>
+                        <td>{{ booking.id }}</td>
+                        <td>
+                            {% if booking.user %}
+                                {{ booking.user.get_full_name|default:"Не указано" }}
+                            {% else %}
+                                Гость
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if booking.user and booking.user.phone_number %}
+                                {{ booking.user.phone_number }}
+                            {% else %}
+                                Не указан
+                            {% endif %}
+                        </td>
+                        <td>{{ booking.service.name|default:"—" }}</td>
+                        <td>{{ booking.equipment.name|default:"—" }}</td>
+                        <td>{{ booking.start_date|date:"d.m.Y H:i" }}</td>
+                        <td>{{ booking.end_date|date:"d.m.Y H:i" }}</td>
+                        <td class="status-{{ booking.status }}">
+                            {{ booking.get_status_display }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info" style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+            <i class="fas fa-info-circle"></i> Нет завершенных бронирований.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Отмененные бронирования -->
+    <div id="canceled-bookings" class="tab-content">
+        {% if canceled_bookings %}
+        <div class="table-responsive">
+            <table class="bookings-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Клиент</th>
+                        <th>Телефон</th>
+                        <th>Услуга</th>
+                        <th>Снаряжение</th>
+                        <th>Дата начала</th>
+                        <th>Дата отмены</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in canceled_bookings %}
+                    <tr>
+                        <td>{{ booking.id }}</td>
+                        <td>
+                            {% if booking.user %}
+                                {{ booking.user.get_full_name|default:"Не указано" }}
+                            {% else %}
+                                Гость
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if booking.user and booking.user.phone_number %}
+                                {{ booking.user.phone_number }}
+                            {% else %}
+                                Не указан
+                            {% endif %}
+                        </td>
+                        <td>{{ booking.service.name|default:"—" }}</td>
+                        <td>{{ booking.equipment.name|default:"—" }}</td>
+                        <td>{{ booking.start_date|date:"d.m.Y H:i" }}</td>
+                        <td>{{ booking.updated_at|date:"d.m.Y H:i" }}</td>
+                        <td class="status-{{ booking.status }}">
+                            {{ booking.get_status_display }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info" style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+            <i class="fas fa-info-circle"></i> Нет отмененных бронирований.
+        </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+    function switchTab(event, tabName) {
+        // Скрыть все вкладки
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        // Показать выбранную вкладку
+        document.getElementById(tabName + '-bookings').classList.add('active');
+        // Обновить активную вкладку
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        event.currentTarget.classList.add('active');
+    }
+</script>
 {% endblock %}
