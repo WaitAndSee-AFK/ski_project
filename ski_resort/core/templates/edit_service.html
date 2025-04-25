@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Редактировать услугу - Горнолыжная база{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: #f8f9fa;
+        color: #333;
+    }
+
+    .container {
+        width: 90%;
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 30px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+        color: #1e90ff;
+        text-align: center;
+        margin-bottom: 30px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+        width: 100%;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .required-field::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px 15px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 16px;
+        background: #fff;
+        transition: all 0.3s;
+        min-height: 42px;
+        font-family: inherit;
+        color: #495057;
+    }
+
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    select[multiple] {
+        min-height: 120px;
+        padding: 10px;
+    }
+
+    select[multiple] option {
+        padding: 8px 12px;
+        margin: 2px 0;
+        border-radius: 4px;
+    }
+
+    select[multiple] option:hover {
+        background-color: #e9ecef;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    textarea:focus,
+    select:focus {
+        border-color: #1e90ff;
+        box-shadow: 0 0 0 0.2rem rgba(30, 144, 255, 0.25);
+        outline: none;
+    }
+
+    .alert {
+        padding: 15px;
+        background: #f8d7da;
+        color: #721c24;
+        border-radius: 6px;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert i {
+        font-size: 18px;
+    }
+
+    .button-group {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 25px;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+    }
+
+    .btn-cancel {
+        background-color: #6c757d;
+        color: white;
+        border: 1px solid #6c757d;
+    }
+
+    .btn-cancel:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+    }
+
+    .btn-save {
+        background-color: #28a745;
+        color: white;
+        border: 1px solid #28a745;
+    }
+
+    .btn-save:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
+    }
+
+    .price-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .price-fields {
+            grid-template-columns: 1fr;
+        }
+
+        .button-group {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+
+    .selected-option {
+        background-color: #e3f2fd !important;
+        font-weight: 500;
+    }
+
+    .text-muted {
+        color: #6c757d;
+        font-size: 0.875em;
+        display: block;
+        margin-top: 5px;
+    }
+
+    .price-display {
+        background-color: #f8f9fa;
+        padding: 12px 15px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        margin-bottom: 20px;
+    }
+
+    .price-display {
+        background-color: #f8f9fa;
+        padding: 12px 15px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        margin-bottom: 20px;
+    }
+
+    .price-info {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+    }
+    .price-option {
+        display: flex;
+        justify-content: space-between;
+    }
+    .price-values {
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    .price-info {
+        margin-top: 10px;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+    }
+</style>
+
+<div class="container">
+    <h1><i class="fas fa-edit"></i> Редактировать услугу: {{ service.name }}</h1>
+
+    {% if error %}
+    <div class="alert">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="name" class="required-field">Название услуги</label>
+            <input type="text" id="name" name="name" value="{{ form_data.name }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="service_type" class="required-field">Тип услуги</label>
+            <select id="service_type" name="service_type" required>
+                <option value="">Выберите тип услуги</option>
+                {% for service_type in service_types %}
+                    <option value="{{ service_type.id }}"
+                        {% if form_data.service_type|stringformat:"s" == service_type.id|stringformat:"s" %}selected{% endif %}>
+                        {{ service_type.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="price" class="required-field">Ценовая категория</label>
+            <select id="price" name="price" required>
+                <option value="">Выберите ценовую категорию</option>
+                {% for price in prices %}
+                    <option value="{{ price.id }}"
+                        data-price-hour="{{ price.price_per_hour }}"
+                        data-price-day="{{ price.price_per_day }}"
+                        {% if form_data.price|stringformat:"s" == price.id|stringformat:"s" %}selected{% endif %}>
+                        <span class="price-option">
+                            <span>{{ price.name }}</span>
+                            <span class="price-values">
+                                Час: {{ price.price_per_hour }} ₽ / День: {{ price.price_per_day }} ₽
+                            </span>
+                        </span>
+                    </option>
+                {% endfor %}
+            </select>
+            <div class="price-info">
+                <p><strong>Выбранные цены:</strong></p>
+                <p>Цена за час: <span id="price-hour-display">
+                    {% if form_data.price %}
+                        {% for price in prices %}
+                            {% if price.id|stringformat:"s" == form_data.price|stringformat:"s" %}
+                                {{ price.price_per_hour }}
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        —
+                    {% endif %}
+                </span> ₽</p>
+                <p>Цена за день: <span id="price-day-display">
+                    {% if form_data.price %}
+                        {% for price in prices %}
+                            {% if price.id|stringformat:"s" == form_data.price|stringformat:"s" %}
+                                {{ price.price_per_day }}
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        —
+                    {% endif %}
+                </span> ₽</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Описание услуги</label>
+            <textarea id="description" name="description">{{ form_data.description }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="equipment">Связанное оборудование</label>
+            <select id="equipment" name="equipment" multiple>
+                {% for equipment in equipment_list %}
+                    <option value="{{ equipment.id }}"
+                        {% if equipment.id|stringformat:"s" in form_data.equipment %}selected{% endif %}>
+                        {{ equipment.name }} ({{ equipment.get_status_display }})
+                    </option>
+                {% endfor %}
+            </select>
+            <small class="text-muted">Удерживайте Ctrl/Cmd для выбора нескольких вариантов</small>
+        </div>
+
+        <div class="button-group">
+            <a href="{% url 'services' %}" class="btn btn-cancel">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+            <button type="submit" class="btn btn-save">
+                <i class="fas fa-save"></i> Сохранить изменения
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Подключение FontAwesome для иконок -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Подсветка выбранных элементов в multiple select
+        const equipmentSelect = document.getElementById('equipment');
+        if (equipmentSelect) {
+            Array.from(equipmentSelect.options).forEach(option => {
+                if (option.selected) {
+                    option.classList.add('selected-option');
+                }
+            });
+
+            equipmentSelect.addEventListener('change', function() {
+                Array.from(this.options).forEach(option => {
+                    if (option.selected) {
+                        option.classList.add('selected-option');
+                    } else {
+                        option.classList.remove('selected-option');
+                    }
+                });
+            });
+        }
+
+        // Обновление отображаемых цен при выборе ценовой категории
+        const priceSelect = document.getElementById('price');
+        if (priceSelect) {
+            priceSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const priceHour = selectedOption.getAttribute('data-price-hour') || '—';
+                const priceDay = selectedOption.getAttribute('data-price-day') || '—';
+
+                document.getElementById('price-hour-display').textContent = priceHour;
+                document.getElementById('price-day-display').textContent = priceDay;
+            });
+
+            // Инициализация цен при загрузке, если уже выбрана цена
+            if (priceSelect.selectedIndex > 0) {
+                const selectedOption = priceSelect.options[priceSelect.selectedIndex];
+                const priceHour = selectedOption.getAttribute('data-price-hour') || '—';
+                const priceDay = selectedOption.getAttribute('data-price-day') || '—';
+
+                document.getElementById('price-hour-display').textContent = priceHour;
+                document.getElementById('price-day-display').textContent = priceDay;
+            }
+        }
+    });
+</script>
+{% endblock %}
