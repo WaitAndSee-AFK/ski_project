@@ -238,7 +238,7 @@
     <!-- Кнопка добавления услуги для администраторов -->
     {% if user.is_staff or user.is_superuser %}
     <div class="action-buttons">
-        <button class="btn-add-service" disabled>
+        <button class="btn-add-service" id="addServiceBtn">
             <i class="fas fa-plus"></i> Добавить услугу
         </button>
     </div>
@@ -251,10 +251,10 @@
                 <!-- Кнопки редактирования и удаления для администраторов -->
                 {% if user.is_staff or user.is_superuser %}
                 <div class="admin-actions">
-                    <button class="btn-admin btn-edit" disabled>
+                    <button class="btn-admin btn-edit" data-service-id="{{ service.id }}">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="delete-btn" disabled>
+                    <button class="delete-btn" data-service-id="{{ service.id }}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -289,5 +289,50 @@
 </div>
 
 <!-- Подключение Font Awesome для иконок -->
-<link rel="stylesheet" href="https://kit.fontawesome.com/a076d05399.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<script>
+    // Обработчик для кнопки добавления
+    document.getElementById('addServiceBtn')?.addEventListener('click', function() {
+        window.location.href = "{% url 'add_service' %}";
+    });
+
+    // Обработчики для кнопок редактирования
+    document.querySelectorAll('.btn-edit').forEach(button => {
+        button.addEventListener('click', function() {
+            const serviceId = this.getAttribute('data-service-id');
+            window.location.href = `/edit_service/${serviceId}/`;
+        });
+    });
+
+    // Обработчики для кнопок удаления
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const serviceId = this.getAttribute('data-service-id');
+            if (confirm('Вы уверены, что хотите удалить эту услугу?')) {
+                fetch(`/delete_service/${serviceId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.error || 'Ошибка при удалении услуги');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Произошла ошибка при удалении услуги');
+                });
+            }
+        });
+    });
+</script>
+
 {% endblock %}

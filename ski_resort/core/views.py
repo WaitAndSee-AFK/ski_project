@@ -186,33 +186,6 @@ def edit_booking(request, booking_id):
         'equipment': Equipment.objects.all(),
     })
 
-# def edit_booking(request, booking_id):
-#     logger.info(f"Начало редактирования бронирования {booking_id} пользователем {request.user.phone_number}")
-#     booking = get_object_or_404(Booking, id=booking_id)
-#     if request.method == 'POST':
-#         form = BookingForm(request.POST, instance=booking)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, 'Бронирование успешно обновлено.')
-#             if request.user.is_staff or request.user.is_superuser:
-#                 logger.info(f"Пользователь {request.user.phone_number} (staff/superuser) перенаправлен на booking_list")
-#                 return redirect('bookings_admin')
-#             else:
-#                 logger.info(f"Пользователь {request.user.phone_number} (обычный) перенаправлен на profile")
-#                 return redirect('profile')
-#         else:
-#             messages.error(request, 'Ошибка при обновлении бронирования.')
-#             logger.error(f"Ошибка в форме редактирования бронирования {booking_id}: {form.errors}")
-#     else:
-#         form = BookingForm(instance=booking)
-#     return render(request, 'edit_booking.html', {
-#         'form': form,
-#         'booking': booking,
-#         'users': CustomUser.objects.all(),
-#         'services': Service.objects.all(),
-#         'equipment': Equipment.objects.all(),
-#     })
-
 
 def delete_booking(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id)
@@ -415,77 +388,244 @@ def get_service(request, service_id):
 
 @login_required
 @csrf_exempt
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
 def add_service(request):
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'success': False, 'error': 'Нет прав доступа'}, status=403)
 
-    try:
-        name = request.POST.get('name')
-        service_type_id = request.POST.get('service_type')
-        description = request.POST.get('description')
-        price_per_hour = request.POST.get('price_per_hour')
-        price_per_day = request.POST.get('price_per_day')
+    service_types = ServiceType.objects.all()
+    equipment_list = Equipment.objects.all()
+    prices = Price.objects.all()
 
-        if not all([name, service_type_id, price_per_hour, price_per_day]):
-            return JsonResponse({'success': False, 'error': 'Все поля обязательны'}, status=400)
+    if request.method == "POST":
+        try:
+            name = request.POST.get('name')
+            service_type_id = request.POST.get('service_type')
+            description = request.POST.get('description')
+            equipment_ids = request.POST.getlist('equipment')
+            price_id = request.POST.get('price')
 
-        price = Price.objects.create(
-            name=f"Цена для {name}",
-            price_per_hour=price_per_hour,
-            price_per_day=price_per_day
-        )
-        service = Service.objects.create(
-            name=name,
-            service_type_id=service_type_id,
-            description=description
-        )
-        service.prices.add(price)
-        return JsonResponse({'success': True, 'id': service.id})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+            if not all([name, service_type_id, price_id]):
+                context = {
+                    'error': 'Все обязательные поля должны быть заполнены',
+                    'form_data': {
+                        'name': name,
+                        'service_type': service_type_id,
+                        'description': description,
+                        'equipment': equipment_ids,
+                        'price': price_id,
+                    },
+                    'service_types': service_types,
+                    'equipment_list': equipment_list,
+                    'prices': prices,
+                }
+                return render(request, "add_service.html", context)
 
+            # Создаем услугу
+            service = Service.objects.create(
+                name=name,
+                service_type_id=service_type_id,
+                description=description
+            )
+
+            # Связываем с оборудованием
+            if equipment_ids:
+                service.equipment.set(equipment_ids)
+
+            # Связываем с выбранной ценой
+            selected_price = Price.objects.get(id=price_id)
+            service.prices.add(selected_price)
+
+            return redirect('services')
+        except Exception as e:
+            context = {
+                'error': f'Ошибка при создании услуги: {str(e)}',
+                'service_types': service_types,
+                'equipment_list': equipment_list,
+                'prices': prices,
+            }
+            return render(request, "add_service.html", context)
+    else:
+        context = {
+            'service_types': service_types,
+            'equipment_list': equipment_list,
+            'prices': prices,
+        }
+        return render(request, "add_service.html", context)
 
 @login_required
-@csrf_exempt
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
 def edit_service(request, service_id):
+    service = get_object_or_404(Service, id=service_id)
+
     if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'success': False, 'error': 'Нет прав доступа'}, status=403)
+        return HttpResponseForbidden("У вас нет прав для редактирования услуг")
 
-    try:
-        service = get_object_or_404(Service, id=service_id)
-        name = request.POST.get('name')
-        service_type_id = request.POST.get('service_type')
-        description = request.POST.get('description')
-        price_per_hour = request.POST.get('price_per_hour')
-        price_per_day = request.POST.get('price_per_day')
+    # Получаем данные для формы
+    service_types = ServiceType.objects.all()
+    equipment_list = Equipment.objects.filter(status='ready')
+    prices = Price.objects.all()
+    current_price = service.prices.first()  # Получаем текущую цену (или None)
 
-        if not all([name, service_type_id, price_per_hour, price_per_day]):
-            return JsonResponse({'success': False, 'error': 'Все поля обязательны'}, status=400)
+    if request.method == "POST":
+        form_data = {
+            'name': request.POST.get('name'),
+            'service_type': request.POST.get('service_type'),
+            'description': request.POST.get('description'),
+            'equipment': request.POST.getlist('equipment'),
+            'price': request.POST.get('price'),
+        }
 
-        service.name = name
-        service.service_type_id = service_type_id
-        service.description = description
-        service.save()
+        # Валидация обязательных полей
+        required_fields = ['name', 'service_type', 'price']
+        if not all(form_data[field] for field in required_fields):
+            context = {
+                'error': 'Пожалуйста, заполните все обязательные поля',
+                'service': service,
+                'service_types': service_types,
+                'equipment_list': equipment_list,
+                'prices': prices,
+                'form_data': form_data,
+            }
+            return render(request, "edit_service.html", context)
 
-        prices = service.prices.all()
-        price = prices.first() if prices.exists() else None
-        if price:
-            price.price_per_hour = price_per_hour
-            price.price_per_day = price_per_day
-            price.save()
-        else:
-            price = Price.objects.create(
-                name=f"Цена для {name}",
-                price_per_hour=price_per_hour,
-                price_per_day=price_per_day
-            )
-            service.prices.add(price)
+        try:
+            # Обновляем основную информацию об услуге
+            service.name = form_data['name']
+            service.service_type_id = form_data['service_type']
+            service.description = form_data['description']
+            service.save()
 
-        return JsonResponse({'success': True})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+            # Обновляем связанное оборудование
+            if form_data['equipment']:
+                equipment_ids = [int(eq_id) for eq_id in form_data['equipment']]
+                service.equipment.set(equipment_ids)
+            else:
+                service.equipment.clear()
+
+            # Обновляем цену
+            selected_price = get_object_or_404(Price, id=form_data['price'])
+            service.prices.set([selected_price])
+
+            messages.success(request, 'Услуга успешно обновлена!')
+            return redirect('services')
+
+        except Exception as e:
+            context = {
+                'error': f'Ошибка при обновлении услуги: {str(e)}',
+                'service': service,
+                'service_types': service_types,
+                'equipment_list': equipment_list,
+                'prices': prices,
+                'form_data': form_data,
+            }
+            return render(request, "edit_service.html", context)
+
+    else:  # GET-запрос
+        form_data = {
+            'name': service.name,
+            'service_type': service.service_type.id if service.service_type else '',
+            'description': service.description,
+            'equipment': [str(eq.id) for eq in service.equipment.all()],
+            'price': current_price.id if current_price else '',
+        }
+
+        context = {
+            'service': service,
+            'service_types': service_types,
+            'equipment_list': equipment_list,
+            'prices': prices,
+            'form_data': form_data,
+        }
+        return render(request, "edit_service.html", context)
+
+# @login_required
+# @require_http_methods(["GET", "POST"])
+# def edit_service(request, service_id):
+#     service = get_object_or_404(Service, id=service_id)
+#
+#     if not (request.user.is_staff or request.user.is_superuser):
+#         return HttpResponseForbidden("У вас нет прав для редактирования услуг")
+#
+#     # Получаем данные для формы
+#     service_types = ServiceType.objects.all()
+#     equipment_list = Equipment.objects.filter(status='ready')
+#     prices = Price.objects.all()
+#     current_price = service.prices.first()  # Получаем текущую цену (или None)
+#
+#     if request.method == "POST":
+#         form_data = {
+#             'name': request.POST.get('name'),
+#             'service_type': request.POST.get('service_type'),
+#             'description': request.POST.get('description'),
+#             'equipment': request.POST.getlist('equipment'),
+#             'price': request.POST.get('price'),
+#         }
+#
+#         # Валидация обязательных полей
+#         required_fields = ['name', 'service_type', 'price']
+#         if not all(form_data[field] for field in required_fields):
+#             context = {
+#                 'error': 'Пожалуйста, заполните все обязательные поля',
+#                 'service': service,
+#                 'service_types': service_types,
+#                 'equipment_list': equipment_list,
+#                 'prices': prices,
+#                 'form_data': form_data,
+#             }
+#             return render(request, "edit_service.html", context)
+#
+#         try:
+#             # Обновляем основную информацию об услуге
+#             service.name = form_data['name']
+#             service.service_type_id = form_data['service_type']
+#             service.description = form_data['description']
+#             service.save()
+#
+#             # Обновляем связанное оборудование
+#             if form_data['equipment']:
+#                 equipment_ids = [int(eq_id) for eq_id in form_data['equipment']]
+#                 service.equipment.set(equipment_ids)
+#             else:
+#                 service.equipment.clear()
+#
+#             # Обновляем цену
+#             selected_price = get_object_or_404(Price, id=form_data['price'])
+#             service.prices.set([selected_price])
+#
+#             messages.success(request, 'Услуга успешно обновлена!')
+#             return redirect('services')
+#
+#         except Exception as e:
+#             context = {
+#                 'error': f'Ошибка при обновлении услуги: {str(e)}',
+#                 'service': service,
+#                 'service_types': service_types,
+#                 'equipment_list': equipment_list,
+#                 'prices': prices,
+#                 'form_data': form_data,
+#             }
+#             return render(request, "edit_service.html", context)
+#
+#     else:  # GET-запрос
+#         form_data = {
+#             'name': service.name,
+#             'service_type': service.service_type.id if service.service_type else '',
+#             'description': service.description,
+#             'equipment': [str(eq.id) for eq in service.equipment.all()],
+#             'price': current_price.id if current_price else '',
+#         }
+#
+#         context = {
+#             'service': service,
+#             'service_types': service_types,
+#             'equipment_list': equipment_list,
+#             'prices': prices,
+#             'form_data': form_data,
+#         }
+#         return render(request, "edit_service.html", context)
+
+
 
 
 @login_required
